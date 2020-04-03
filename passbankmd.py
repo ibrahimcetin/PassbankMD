@@ -14,7 +14,6 @@ from kivymd.icon_definitions import md_icons
 from kivymd.uix.dialog import MDDialog
 from toast import toast
 
-import sys
 import sqlite3
 import random
 from pyaes import AESCipher
@@ -189,7 +188,6 @@ kv_string = """
             height: dp(40)
             
 
-        
 <AddAccountScreen>
    
     MDBoxLayout:
@@ -238,27 +236,10 @@ kv_string = """
             pos_hint: {"center_x": .5}
             on_press: root.addAccountBtn()
 
-
-MyScreenManager:
-
-    RegisterScreen:
-        sm: root
-        name: "register_screen"
-        
-    LoginScreen:
-        sm: root
-        name: "login_screen"
-        
-    MainScreen:
-        sm: root
-        name: "main_screen"
-        
-    AddAccountScreen:
-        sm: root
-        name: "add_account_screen"
-
-
 """
+
+Builder.load_string(kv_string)
+
 
 def connectDatabase():
     con = sqlite3.connect("pass.db")
@@ -281,12 +262,6 @@ class MyScreenManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        self.con, self.cursor = connectDatabase()
-        
-        self.cipher = getCipher()
-        
-        Clock.schedule_once(self.checkRegister, 0)
-        
         Window.bind(on_keyboard=self.on_key)
     
     def on_key(self, window, key, *args):
@@ -304,25 +279,16 @@ class MyScreenManager(ScreenManager):
             
             if self.current_screen.name == "main_screen":
                 return False
-                
-    def checkRegister(self, *args):
-        self.cursor.execute("SELECT password FROM password")
-        password = self.cursor.fetchall()
-        
-        if password:
-            self.current = "login_screen"
-        else:
-            pass
-           
+    
 
-class BaseScreen(Screen):
+class BaseScreen(Screen, MDApp):
     pass
 
 class RegisterScreen(BaseScreen):
-    sm = ObjectProperty()
-    
-    def __init__(self, **kwargs):
+    def __init__(self, sm, **kwargs):
         super().__init__(**kwargs)
+        
+        self.sm = sm
         
         self.con, self.cursor = connectDatabase()
         
@@ -358,10 +324,10 @@ class RegisterScreen(BaseScreen):
             
  
 class LoginScreen(BaseScreen):
-    sm = ObjectProperty()
-    
-    def __init__(self, **kwargs):
+    def __init__(self, sm, **kwargs):
         super().__init__(**kwargs)
+        
+        self.sm = sm
 
         self.con, self.cursor = connectDatabase()
         
@@ -492,7 +458,6 @@ class ContentCustomBottomSheet(MDBoxLayout):
         
 
 class MainScreen(Screen):
-    sm = ObjectProperty()
     custom_sheet = None
     
     btn_data = {
@@ -501,8 +466,10 @@ class MainScreen(Screen):
             "clipboard": "Clear Clipboard"
     }
     
-    def __init__(self, **kwargs):
+    def __init__(self, sm, **kwargs):
         super().__init__(**kwargs)
+        
+        self.sm = sm
 
         self.con, self.cursor = connectDatabase()
         
@@ -582,10 +549,10 @@ class MainScreen(Screen):
     
 
 class AddAccountScreen(BaseScreen):
-    sm = ObjectProperty()
-
-    def __init__(self, **kwargs):
+    def __init__(self, sm, **kwargs):
         super().__init__(**kwargs)
+        
+        self.sm = sm
 
         self.cipher = getCipher()
         
@@ -635,9 +602,29 @@ class AddAccountScreen(BaseScreen):
             return
 
 
+sm = MyScreenManager()
+
+### Change Startup Screen
+con, cursor = connectDatabase()
+cipher = getCipher()
+
+cursor.execute("SELECT password FROM password")
+password = cursor.fetchall()
+
+if password:
+    sm.add_widget(LoginScreen(name="login_screen", sm=sm))
+else:
+    sm.add_widget(RegisterScreen(name="register_screen", sm=sm))
+###
+
+sm.add_widget(MainScreen(name="main_screen", sm=sm))
+sm.add_widget(AddAccountScreen(name="add_account_screen", sm=sm))
+
+
+
 class PassbankApp(MDApp):
     def build(self):
-        return Builder.load_string(kv_string)
+        return sm
 
 if __name__ == "__main__":
     PassbankApp().run()
