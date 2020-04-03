@@ -2,7 +2,7 @@ from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.clipboard import Clipboard
-from kivy.base import EventLoop
+from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.clock import Clock
 
@@ -239,7 +239,7 @@ kv_string = """
             on_press: root.addAccountBtn()
 
 
-ScreenManager:
+MyScreenManager:
 
     RegisterScreen:
         sm: root
@@ -277,6 +277,44 @@ def getCipher():
     return cipher
 
 
+class MyScreenManager(ScreenManager):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.con, self.cursor = connectDatabase()
+        
+        self.cipher = getCipher()
+        
+        Clock.schedule_once(self.checkRegister, 0)
+        
+        Window.bind(on_keyboard=self.on_key)
+    
+    def on_key(self, window, key, *args):
+        if key == 27:  # the esc key
+            if self.current_screen.name == "add_account_screen":
+                self.transition.direction = "right"
+                self.current = "main_screen"
+                return True # do not exit the app
+            
+            if self.current_screen.name == "register_screen":
+                return False # exit the app from this page
+            
+            if self.current_screen.name == "login_screen":
+                return False
+            
+            if self.current_screen.name == "main_screen":
+                return False
+                
+    def checkRegister(self, *args):
+        self.cursor.execute("SELECT password FROM password")
+        password = self.cursor.fetchall()
+        
+        if password:
+            self.current = "login_screen"
+        else:
+            pass
+           
+
 class BaseScreen(Screen):
     pass
 
@@ -290,16 +328,6 @@ class RegisterScreen(BaseScreen):
         
         self.cipher = getCipher()
         
-        Clock.schedule_once(self.checkRegister, 0)
-        
-    def checkRegister(self, *args):
-        self.cursor.execute("SELECT password FROM password")
-        password = self.cursor.fetchall()
-        
-        if password:
-            self.sm.current = "login_screen"
-        else:
-            pass
         
     def registerBtn(self):
         password = self.ids.reg_pass_input.text
