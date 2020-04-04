@@ -1,6 +1,6 @@
 from kivy.lang import Builder
 from kivy.factory import Factory
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
@@ -628,7 +628,7 @@ class AddAccountScreen(BaseScreen):
             return
 
 
-sm = MyScreenManager()
+sm = MyScreenManager(transition=NoTransition())
 
 ### Change Startup Screen
 con, cursor = connectDatabase()
