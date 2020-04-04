@@ -205,8 +205,8 @@ kv_string = """
         MDTextField:
             id: add_acc_site_input
             hint_text: "Site"
-            required: True
-            helper_text_mode: "on_error"
+            #required: True
+            #helper_text_mode: "on_error"
         
         MDTextField:
             id: add_acc_email_input
@@ -220,15 +220,15 @@ kv_string = """
             id: add_acc_pass_input
             hint_text: "Password"
             password: True
-            required: True
-            helper_text_mode: "on_error"
+            #required: True
+            #helper_text_mode: "on_error"
 
         MDTextField:
             id: add_acc_conf_pass_input
             hint_text: "Confirm Password"
             password: True
-            required: True
-            helper_text_mode: "on_error"
+            #required: True
+            #helper_text_mode: "on_error"
 
         MDRaisedButton:
             text: "Add Account"
@@ -556,14 +556,10 @@ class AddAccountScreen(BaseScreen):
         
         self.conn, self.cursor = connectDatabase()
         
-    def restartScreen(self, *args):
-        self.ids.add_acc_site_input.text = ""
-        self.ids.add_acc_email_input.text = ""
-        self.ids.add_acc_username_input.text = ""
-        self.ids.add_acc_pass_input.text = ""
-        self.ids.add_acc_conf_pass_input.text = ""
-        
-        self.manager.transition.unbind(on_complete=self.restartScreen)
+    def clearTextField(self, text_field):
+        self.ids[text_field].focus = True
+        self.ids[text_field].text = ""
+        self.ids[text_field].focus = False
         
     def addAccountBtn(self):
         
@@ -591,9 +587,11 @@ class AddAccountScreen(BaseScreen):
             
             toast(f"{site} account added")
             
-            self.sm.transition.bind(on_complete=self.restartScreen)
             self.sm.transition.direction = "right"
             self.sm.current = "main_screen"
+            
+            for text_field in self.ids.keys(): # clear text fields
+                self.clearTextField(text_field)
             
             main_screen.setAccounts() # refresh main screen
             
