@@ -4,7 +4,6 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
-from kivy.clock import Clock
 
 from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineIconListItem
@@ -12,7 +11,7 @@ from kivymd.uix.bottomsheet import MDCustomBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.icon_definitions import md_icons
 from kivymd.uix.dialog import MDDialog
-from toast import toast
+from kivymd.toast import toast
 
 import sqlite3
 import random
@@ -332,20 +331,20 @@ class LoginScreen(BaseScreen):
         self.con, self.cursor = connectDatabase()
         
         self.cipher = getCipher()
-    
-    def loginBtn(self):
+        
         self.cursor.execute("SELECT password FROM password")
         encrypted = self.cursor.fetchall()[0][0]
-
+        
         self.password = self.cipher.decrypt(encrypted)
         
+    def loginBtn(self):
         if self.password == self.ids.login_pass_input.text:
             self.ids.login_pass_input.error = False
             self.sm.current = "main_screen"
 
         else:
             self.ids.login_pass_input.error = True
-        
+    
  
  
 class CustomThreeLineIconListItem(ThreeLineIconListItem):
@@ -438,6 +437,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
             else:
                 toast("Passwords not match")
         
+        main_screen.setAccounts() # refresh main screen
+        
+        
     def deleteAccountDialog(self):
         dialog = MDDialog(
             title="Delete",
@@ -455,6 +457,8 @@ class ContentCustomBottomSheet(MDBoxLayout):
             self.con.commit()
             
             toast(f"{self.site} successfully deleted")
+            
+            main_screen.setAccounts() # refresh main screen
         
 
 class MainScreen(Screen):
@@ -476,12 +480,6 @@ class MainScreen(Screen):
         self.cipher = getCipher()
         
         self.chars = ["q","w","e","r","t","y","u","i","o","p","a","s","d","f","g","h","j","k","l","z","x","c","v","b","n","m","1","2","3","4","5","6","7","8","9","0","Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","!","?","&","#","(",")","_","-","@","$",".","+","*", "/"]
-    
-        Clock.schedule_interval(self.updateScreen, 3)
-    
-    def updateScreen(self, *args):
-        if self.sm.current == "main_screen":
-            self.setAccounts()
         
     def getAccounts(self):
         self.cursor.execute("SELECT site,email,username FROM accounts ORDER BY site")
@@ -597,6 +595,8 @@ class AddAccountScreen(BaseScreen):
             self.sm.transition.direction = "right"
             self.sm.current = "main_screen"
             
+            main_screen.setAccounts() # refresh main screen
+            
         else:
             toast("Passwords not match")
             return
@@ -616,10 +616,9 @@ if password:
 else:
     sm.add_widget(RegisterScreen(name="register_screen", sm=sm))
 ###
-
-sm.add_widget(MainScreen(name="main_screen", sm=sm))
+main_screen = MainScreen(name="main_screen", sm=sm) # for refresh main screen
+sm.add_widget(main_screen)
 sm.add_widget(AddAccountScreen(name="add_account_screen", sm=sm))
-
 
 
 class PassbankApp(MDApp):
