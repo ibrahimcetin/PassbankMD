@@ -4,6 +4,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
+#from kivy.clock import Clock
 
 from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineIconListItem
@@ -70,22 +71,29 @@ kv_string = """
         orientation: "vertical"
         pos_hint: {"center_x": .5, "center_y": .5}
         adaptive_height: True
-        size_hint_x: .65
+        size_hint_x: .7
 
         MDLabel:
             text: "Welcome to Passbank"
             halign: "center"
-            pos_hint: {"center_x": .5}
             font_style: "Button"
             
         Widget:
+        
+        MDBoxLayout:
+            adaptive_height: True
 
-        MDTextField:
-            id: login_pass_input
-            hint_text: "Password"
-            password: True
-            helper_text: "Password not correct"
-            helper_text_mode: "on_error"
+            MDTextField:
+                id: login_pass_input
+                hint_text: "Password"
+                password: True
+                helper_text: "Password not correct"
+                helper_text_mode: "on_error"
+            
+            MDIconButton:
+                id: login_show_password
+                icon: "eye-outline"
+                on_press: root.showPassword()
 
         MDRaisedButton:
             text: "Login"
@@ -96,7 +104,6 @@ kv_string = """
 <CustomThreeLineIconListItem>
     IconLeftWidget:
         icon: root.icon
-   
 
 <MainScreen>
     
@@ -334,8 +341,9 @@ class LoginScreen(BaseScreen):
         
         self.cursor.execute("SELECT password FROM password")
         encrypted = self.cursor.fetchall()[0][0]
-        
         self.password = self.cipher.decrypt(encrypted)
+        
+        #self.check_input_schedule = Clock.schedule_interval(self.checkInput, 0)
         
     def loginBtn(self):
         if self.password == self.ids.login_pass_input.text:
@@ -344,7 +352,27 @@ class LoginScreen(BaseScreen):
 
         else:
             self.ids.login_pass_input.error = True
-    
+    """
+    def checkInput(self, *args):
+        if self.password == self.ids.login_pass_input.text:
+            self.ids.login_pass_input.error = False
+            self.sm.current = "main_screen"
+            
+            self.check_input_schedule.cancel()
+        
+        # TODO: hide keyboard
+    """
+    def showPassword(self):
+        button = self.ids.login_show_password
+        input = self.ids.login_pass_input
+        
+        if button.icon == "eye-outline":
+            input.password = False
+            button.icon = "eye-off-outline"
+            
+        elif button.icon == "eye-off-outline":
+            input.password = True
+            button.icon = "eye-outline"
  
  
 class CustomThreeLineIconListItem(ThreeLineIconListItem):
