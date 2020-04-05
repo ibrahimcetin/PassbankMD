@@ -209,12 +209,12 @@ kv_string = """
         orientation: "vertical"
         pos_hint: {"center_x": .5, "center_y": .5}
         adaptive_height: True
-        size_hint_x: .65
+        size_hint_x: .7
 
         MDLabel:
             text: "Add New Account"
             halign: "center"
-            pos_hint: {"center_x": .5}
+            font_style: "Button"
 
         MDTextField:
             id: add_acc_site_input
@@ -230,12 +230,20 @@ kv_string = """
             id: add_acc_username_input
             hint_text: "Username"
 
-        MDTextField:
-            id: add_acc_pass_input
-            hint_text: "Password"
-            password: True
-            #required: True
-            #helper_text_mode: "on_error"
+        MDBoxLayout:
+            adaptive_height: True
+
+            MDTextField:
+                id: add_acc_pass_input
+                hint_text: "Password"
+                password: True
+                #required: True
+                #helper_text_mode: "on_error"
+
+            MDIconButton:
+                id: add_acc_show_password
+                icon: "eye-outline"
+                on_press: root.showPassword()
 
         MDTextField:
             id: add_acc_conf_pass_input
@@ -654,6 +662,18 @@ class AddAccountScreen(BaseScreen):
         else:
             toast("Passwords not match")
             return
+
+    def showPassword(self):
+        button = self.ids.add_acc_show_password
+        input = self.ids.add_acc_pass_input
+
+        if button.icon == "eye-outline":
+            input.password = False
+            button.icon = "eye-off-outline"
+
+        elif button.icon == "eye-off-outline":
+            input.password = True
+            button.icon = "eye-outline"
 
 
 sm = MyScreenManager(transition=NoTransition())
