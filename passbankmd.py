@@ -159,7 +159,7 @@ kv_string = """
         #title: "Edit"
         elevation: 10
         pos_hint: {"top": 1}
-        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount()]]
+        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPassword()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount()]]
 
     MDBoxLayout:
         adaptive_height: True
@@ -487,10 +487,10 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
     def deleteAccountDialog(self):
         dialog = MDDialog(
-            title="Delete",
-            size_hint=(0.7, 0.2),
+            title=f"Delete {self.site}",
+            size_hint=(0.8, 0.22),
             text_button_ok="Yes",
-            text=f"Delete [b]{self.site}[/b]?",
+            text=f"You will delete [b]{self.site}[/b]. Are you sure?",
             text_button_cancel="Cancel",
             events_callback=self.deleteAccount,
         )
@@ -505,10 +505,22 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             main_screen.setAccounts() # refresh main screen
 
+    def showPassword(self, *args):
+        self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
+        encrypted = self.cursor.fetchall()[0][0]
+
+        password = self.cipher.decrypt(encrypted)
+
+        dialog = MDDialog(
+            title=f"{self.site} Password",
+            size_hint=(0.8, 0.22),
+            text_button_ok="Close",
+            text=f"\n[b]{password}[/b]"
+        )
+        dialog.open()
+
 
 class MainScreen(Screen):
-    custom_sheet = None
-
     btn_data = {
             "key": "Suggest Password",
             'account-plus': 'Add Account',
