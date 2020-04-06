@@ -18,6 +18,7 @@ import sqlite3
 import random
 from pyaes import AESCipher
 
+# TODO: Use text field error message instead of toast message
 
 kv_string = """
 <BaseScreen>
@@ -50,8 +51,8 @@ kv_string = """
             MDTextField:
                 id: reg_pass_input
                 hint_text: "Password"
-                helper_text_mode: "on_error"
                 password: True
+                #helper_text_mode: "on_error"
 
             MDIconButton:
                 id: reg_show_password
@@ -61,13 +62,13 @@ kv_string = """
         MDTextField:
             id: reg_confirm_pass_input
             hint_text: "Confirm Password"
-            helper_text_mode: "on_error"
             password: True
+            #helper_text_mode: "on_error"
 
         MDRaisedButton:
             text: "Register"
             pos_hint: {"center_x": .5}
-            on_press: root.registerBtn()
+            on_press: root.register()
 
 
 <LoginScreen>
@@ -105,7 +106,7 @@ kv_string = """
         MDRaisedButton:
             text: "Login"
             pos_hint: {"center_x": .5}
-            on_press: root.loginBtn()
+            on_press: root.login()
 
 
 <CustomThreeLineIconListItem>
@@ -167,13 +168,13 @@ kv_string = """
         spacing: dp(10)
         orientation: "vertical"
         pos_hint: {"center_x": .5, "center_y": .5}
-        size_hint_x: .65
+        size_hint_x: .7
 
         MDTextField:
             id: sheet_site_input
             hint_text: "Site"
-            required: True
-            helper_text_mode: "on_error"
+            #required: True
+            #helper_text_mode: "on_error"
 
         MDTextField:
             id: sheet_email_input
@@ -185,19 +186,30 @@ kv_string = """
 
         MDSeparator:
 
-        MDTextField:
-            id: sheet_pass_input
-            hint_text: "New Password"
-            password: True
+        MDBoxLayout:
+            adaptive_height: True
+
+            MDTextField:
+                id: sheet_pass_input
+                hint_text: "Password"
+                password: True
+                #helper_text: "Passwords not match"
+                #helper_text_mode: "on_error"
+
+            MDIconButton:
+                id: sheet_show_password
+                icon: "eye-outline"
+                on_press: root.showNewPassword()
 
         MDTextField:
             id: sheet_confirm_pass_input
             hint_text: "New Password Confirm"
             password: True
+            #helper_text: "Passwords not match"
+            #helper_text_mode: "on_error"
 
         Widget:
             size_hint_y: None
-            pos_hint: {"center_x": .5}
             height: dp(40)
 
 
@@ -255,7 +267,7 @@ kv_string = """
         MDRaisedButton:
             text: "Add Account"
             pos_hint: {"center_x": .5}
-            on_press: root.addAccountBtn()
+            on_press: root.addAccount()
 
 """
 
@@ -315,21 +327,15 @@ class RegisterScreen(BaseScreen):
 
         self.cipher = getCipher()
 
+    def register(self):
+        password_field = self.ids.reg_pass_input
+        confirm_password_field = self.ids.reg_confirm_pass_input
 
-    def registerBtn(self):
-        password = self.ids.reg_pass_input.text
-        confirm_password = self.ids.reg_confirm_pass_input.text
+        if password_field.text == "":
+            toast("Password required")
 
-        if password == "":
-            self.ids.reg_pass_input.helper_text = "Password required"
-            self.ids.reg_pass_input.error = True
-
-        elif confirm_password == "":
-            self.ids.reg_confirm_pass_input.helper_text = "Password required"
-            self.ids.reg_confirm_pass_input.error = True
-
-        elif password == confirm_password:
-            encrypted = self.cipher.encrypt(password)
+        elif password_field.text == confirm_password_field.text:
+            encrypted = self.cipher.encrypt(password_field.text)
 
             self.cursor.execute("INSERT INTO password VALUES(?)",(encrypted,))
             self.con.commit()
@@ -337,22 +343,21 @@ class RegisterScreen(BaseScreen):
             self.sm.current = "main_screen"
 
         else:
-            self.ids.reg_pass_input.helper_text = "Passwords not match"
-            self.ids.reg_confirm_pass_input.helper_text = "Passwords not match"
-
-            self.ids.reg_pass_input.error = True
-            self.ids.reg_confirm_pass_input.error = True
+            toast("Passwords not match")
 
     def showPassword(self):
         button = self.ids.reg_show_password
-        input = self.ids.reg_pass_input
+        input_1 = self.ids.reg_pass_input
+        input_2 = self.ids.reg_confirm_pass_input
 
         if button.icon == "eye-outline":
-            input.password = False
+            input_1.password = False
+            input_2.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input.password = True
+            input_1.password = True
+            input_2.password = True
             button.icon = "eye-outline"
 
 
@@ -372,7 +377,7 @@ class LoginScreen(BaseScreen):
 
         #self.check_input_schedule = Clock.schedule_interval(self.checkInput, 0)
 
-    def loginBtn(self):
+    def login(self):
         if self.password == self.ids.login_pass_input.text:
             self.ids.login_pass_input.error = False
             self.sm.current = "main_screen"
@@ -449,7 +454,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         ### Update Site
         if new_site == "":
-            pass
+            toast("Site is required")
 
         elif new_site == self.site:
             pass
@@ -489,6 +494,8 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 toast("Password successfully changed")
 
             else:
+                #self.ids.sheet_pass_input.error = True # Not working well
+                #self.ids.sheet_confirm_pass_input.error = True
                 toast("Passwords not match")
 
         main_screen.setAccounts() # refresh main screen
@@ -526,6 +533,21 @@ class ContentCustomBottomSheet(MDBoxLayout):
             text=f"\n[b]{password}[/b]"
         )
         dialog.open()
+
+    def showNewPassword(self):
+        button = self.ids.sheet_show_password
+        input_1 = self.ids.sheet_pass_input
+        input_2 = self.ids.sheet_confirm_pass_input
+
+        if button.icon == "eye-outline":
+            input_1.password = False
+            input_2.password = False
+            button.icon = "eye-off-outline"
+
+        elif button.icon == "eye-off-outline":
+            input_1.password = True
+            input_2.password = True
+            button.icon = "eye-outline"
 
 
 class MainScreen(Screen):
@@ -626,14 +648,13 @@ class AddAccountScreen(BaseScreen):
         self.ids[text_field].text = ""
         self.ids[text_field].focus = False
 
-    def addAccountBtn(self):
+    def addAccount(self):
         site = self.ids.add_acc_site_input.text
         email = self.ids.add_acc_email_input.text
         username = self.ids.add_acc_username_input.text
 
         password = self.ids.add_acc_pass_input.text
         confirm_password = self.ids.add_acc_conf_pass_input.text
-
 
         if password == confirm_password:
             if site == "":
@@ -665,14 +686,17 @@ class AddAccountScreen(BaseScreen):
 
     def showPassword(self):
         button = self.ids.add_acc_show_password
-        input = self.ids.add_acc_pass_input
+        input_1 = self.ids.add_acc_pass_input
+        input_2 = self.ids.add_acc_conf_pass_input
 
         if button.icon == "eye-outline":
-            input.password = False
+            input_1.password = False
+            input_2.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input.password = True
+            input_1.password = True
+            input_2.password = True
             button.icon = "eye-outline"
 
 
