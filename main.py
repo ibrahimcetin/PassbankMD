@@ -12,6 +12,8 @@ from kivymd.uix.bottomsheet import MDCustomBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.icon_definitions import md_icons
 from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDRaisedButton
 from kivymd.toast import toast
 
 import sqlite3
@@ -501,38 +503,48 @@ class ContentCustomBottomSheet(MDBoxLayout):
         main_screen.setAccounts() # refresh main screen
 
     def deleteAccountDialog(self):
-        dialog = MDDialog(
+        self.dialog = MDDialog(
             title=f"Delete {self.site}",
             size_hint=(0.8, 0.22),
-            text_button_ok="Yes",
-            text=f"You will delete [b]{self.site}[/b]. Are you sure?",
-            text_button_cancel="Cancel",
-            events_callback=self.deleteAccount,
+            text=f"\nYou will delete [b]{self.site}[/b]. Are you sure?",
+            buttons=[
+                MDFlatButton(
+                    text="Yes", on_press=self.deleteAccount
+                ),
+                MDFlatButton(
+                    text="No", on_press=self.closeDialog
+                )]
         )
-        dialog.open()
+        self.dialog.ids.text.text_color = ""
+        self.dialog.open()
 
-    def deleteAccount(self, *args):
-        if args[0] == "Yes":
-            self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", (self.site, self.email))
-            self.con.commit()
+    def deleteAccount(self, button):
+        self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", (self.site, self.email))
+        self.con.commit()
 
-            toast(f"{self.site} successfully deleted")
+        toast(f"{self.site} successfully deleted")
 
-            main_screen.setAccounts() # refresh main screen
+        main_screen.setAccounts() # refresh main screen
 
-    def showPassword(self, *args):
+    def showPassword(self):
         self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
         encrypted = self.cursor.fetchall()[0][0]
 
         password = self.cipher.decrypt(encrypted)
 
-        dialog = MDDialog(
+        self.dialog = MDDialog(
             title=f"{self.site} Password",
             size_hint=(0.8, 0.22),
-            text_button_ok="Close",
-            text=f"\n[b]{password}[/b]"
+            text=f"\n[b]{password}[/b]",
+            buttons=[
+                MDRaisedButton(text="Close", on_press=self.closeDialog)
+            ]
         )
-        dialog.open()
+        self.dialog.ids.text.text_color = ""
+        self.dialog.open()
+
+    def closeDialog(self, button):
+        self.dialog.dismiss()
 
     def showNewPassword(self):
         button = self.ids.sheet_show_password
