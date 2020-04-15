@@ -125,7 +125,6 @@ kv_string = """
         MDBoxLayout:
             size_hint_y: None
             height: self.minimum_height
-            #md_bg_color: app.theme_cls.primary_color
 
             MDIconButton:
                 icon: 'magnify'
@@ -595,16 +594,24 @@ class MainScreen(Screen):
         if search_text: 
             search = True
 
-        def addAccounts(site, email, username):
+        def addAccountsToRecycleView(site, email, username):
+            # Set icon
             icon = "-".join(site.lower().split())
+
+            if icon == "github":
+                icon = "github-circle"
+
             if icon not in md_icons.keys():
                 icon = ""
+            ###
 
+            # Set email and username
             if email == "":
                 email = " "
 
             if username == "":
                 username = " "
+            ###
 
             self.ids.rv.data.append(
                 {
@@ -625,9 +632,9 @@ class MainScreen(Screen):
 
             if search:
                 if search_text.lower() in site.lower():
-                    addAccounts(site, email, username)
+                    addAccountsToRecycleView(site, email, username)
             else:
-                addAccounts(site, email, username)
+                addAccountsToRecycleView(site, email, username)
 
     def actionBtn(self, button):
         if button.icon == "key":
