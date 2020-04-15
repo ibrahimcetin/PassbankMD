@@ -524,6 +524,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         toast(f"{self.site} successfully deleted")
 
+        self.dialog.dismiss()
+        main_screen.bottom_sheet.dismiss()
+
         main_screen.setAccounts() # refresh main screen
 
     def showPassword(self):
@@ -641,8 +644,8 @@ class MainScreen(Screen):
             self.sm.current = "add_account_screen"
 
     def openBottomSheet(self, site, email, username):
-        self.custom_sheet = MDCustomBottomSheet(screen=ContentCustomBottomSheet(site, email, username))
-        self.custom_sheet.open()
+        self.bottom_sheet = MDCustomBottomSheet(screen=ContentCustomBottomSheet(site, email, username))
+        self.bottom_sheet.open()
 
 
 class AddAccountScreen(BaseScreen):
