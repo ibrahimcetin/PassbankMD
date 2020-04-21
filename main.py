@@ -1,6 +1,6 @@
 from kivy.lang import Builder
 from kivy.factory import Factory
-from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
@@ -406,7 +406,7 @@ class LoginScreen(BaseScreen):
         elif button.icon == "eye-off-outline":
             input.password = True
             button.icon = "eye-outline"
- 
+
 
 class CustomThreeLineIconListItem(ThreeLineIconListItem):
     icon = StringProperty()
@@ -580,7 +580,11 @@ class MainScreen(Screen):
 
         self.cipher = getCipher()
 
-        self.chars = ["q","w","e","r","t","y","u","i","o","p","a","s","d","f","g","h","j","k","l","z","x","c","v","b","n","m","1","2","3","4","5","6","7","8","9","0","Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","!","?","&","#","(",")","_","-","@","$",".","+","*", "/"]
+        self.chars = ["q","w","e","r","t","y","u","i","o","p","a","s","d", \
+            "f","g","h","j","k","l","z","x","c","v","b","n","m","1","2","3", \
+            "4","5","6","7","8","9","0","Q","W","E","R","T","Y","U","I","O", \
+            "P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N", \
+            "M","!","?","&","#","(",")","_","-","@","$",".","+","*", "/"]
 
     def getAccounts(self):
         self.cursor.execute("SELECT site,email,username FROM accounts ORDER BY site COLLATE NOCASE ASC")
@@ -591,7 +595,7 @@ class MainScreen(Screen):
 
         search= False
         search_text = self.ids.search_field.text
-        if search_text: 
+        if search_text:
             search = True
 
         def addAccountsToRecycleView(site, email, username):
@@ -722,26 +726,47 @@ class AddAccountScreen(BaseScreen):
             button.icon = "eye-outline"
 
 
-sm = MyScreenManager(transition=NoTransition())
+sm = MyScreenManager(transition=FadeTransition(duration=0.2, clearcolor=MDApp().theme_cls.bg_dark))
 
 ### Change Startup Screen
 con, cursor = connectDatabase()
 cipher = getCipher()
 
 cursor.execute("SELECT password FROM password")
-password = cursor.fetchall()
+exists = cursor.fetchall()
 
-if password:
-    sm.add_widget(LoginScreen(name="login_screen", sm=sm))
+if exists:
+    login_screen = LoginScreen(name="login_screen", sm=sm)
+    sm.add_widget(login_screen)
 else:
     sm.add_widget(RegisterScreen(name="register_screen", sm=sm))
+
+    login_screen = LoginScreen(name="login_screen", sm=sm) # for on_pause method
+    sm.add_widget(login_screen)
 ###
+
 main_screen = MainScreen(name="main_screen", sm=sm) # for refresh main screen
 sm.add_widget(main_screen)
 sm.add_widget(AddAccountScreen(name="add_account_screen", sm=sm))
 
 
 class PassbankApp(MDApp):
+    def on_pause(self):
+        if sm.current == "main_screen":
+            login_screen.ids.login_show_password.icon = "eye-outline"
+            login_screen.ids.login_pass_input.password = True
+
+            login_screen.ids.login_pass_input.focus = True
+            login_screen.ids.login_pass_input.text = ""
+            login_screen.ids.login_pass_input.focus = False
+
+            sm.current = "login_screen"
+
+        else:
+            pass
+
+        return True
+
     def build(self):
         return sm
 
