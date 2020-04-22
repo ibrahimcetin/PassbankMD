@@ -18,6 +18,7 @@ from kivymd.toast import toast
 
 import sqlite3
 import random
+import string
 from pyaes import AESCipher
 
 # TODO: Use text field error message instead of toast message
@@ -580,11 +581,7 @@ class MainScreen(Screen):
 
         self.cipher = getCipher()
 
-        self.chars = ["q","w","e","r","t","y","u","i","o","p","a","s","d", \
-            "f","g","h","j","k","l","z","x","c","v","b","n","m","1","2","3", \
-            "4","5","6","7","8","9","0","Q","W","E","R","T","Y","U","I","O", \
-            "P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N", \
-            "M","!","?","&","#","(",")","_","-","@","$",".","+","*", "/"]
+        self.chars = string.ascii_letters + string.digits + string.punctuation
 
     def getAccounts(self):
         self.cursor.execute("SELECT site,email,username FROM accounts ORDER BY site COLLATE NOCASE ASC")
