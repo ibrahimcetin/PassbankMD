@@ -750,6 +750,12 @@ sm.add_widget(AddAccountScreen(name="add_account_screen", sm=sm))
 class PassbankApp(MDApp):
     def on_pause(self):
         if sm.current == "main_screen":
+            try:
+                main_screen.bottom_sheet.dismiss()
+                main_screen.bottom_sheet.screen.dialog.dismiss()
+            except:
+                pass
+
             login_screen.ids.login_show_password.icon = "eye-outline"
             login_screen.ids.login_pass_input.password = True
 
