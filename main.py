@@ -1,6 +1,6 @@
 from kivy.lang import Builder
 from kivy.factory import Factory
-from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty
@@ -373,13 +373,13 @@ class LoginScreen(BaseScreen):
 
         self.cipher = getCipher()
 
+        # self.check_input_schedule = Clock.schedule_interval(self.checkInput, 0)
+
+    def login(self):
         self.cursor.execute("SELECT password FROM password")
         encrypted = self.cursor.fetchall()[0][0]
         self.password = self.cipher.decrypt(encrypted)
 
-        #self.check_input_schedule = Clock.schedule_interval(self.checkInput, 0)
-
-    def login(self):
         if self.password == self.ids.login_pass_input.text:
             self.ids.login_pass_input.error = False
             self.sm.current = "main_screen"
@@ -723,7 +723,7 @@ class AddAccountScreen(BaseScreen):
             button.icon = "eye-outline"
 
 
-sm = MyScreenManager(transition=FadeTransition(duration=0.2, clearcolor=MDApp().theme_cls.bg_dark))
+sm = MyScreenManager(transition=NoTransition()) # FadeTransition removed because give error when on_pause method run
 
 ### Change Startup Screen
 con, cursor = connectDatabase()
