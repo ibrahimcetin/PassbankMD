@@ -1,0 +1,102 @@
+<CustomThreeLineIconListItem>
+    IconLeftWidget:
+        icon: root.icon
+
+
+<ContentCustomBottomSheet>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: "400dp"
+
+    MDToolbar:
+        id: sheet_toolbar
+        #title: "Edit"
+        elevation: 10
+        pos_hint: {"top": 1}
+        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPasswordBtn()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount()]]
+
+    MDBoxLayout:
+        adaptive_height: True
+        padding: dp(10)
+        spacing: dp(10)
+        orientation: "vertical"
+        pos_hint: {"center_x": .5, "center_y": .5}
+        size_hint_x: .7
+
+        MDTextField:
+            id: sheet_site_input
+            hint_text: "Site"
+            #required: True
+            #helper_text_mode: "on_error"
+
+        MDTextField:
+            id: sheet_email_input
+            hint_text: "EMail"
+
+        MDTextField:
+            id: sheet_username_input
+            hint_text: "Username"
+
+        MDSeparator:
+
+        MDBoxLayout:
+            adaptive_height: True
+
+            MDTextField:
+                id: sheet_pass_input
+                hint_text: "Password"
+                password: True
+                #helper_text: "Passwords not match"
+                #helper_text_mode: "on_error"
+
+            MDIconButton:
+                id: sheet_show_new_password_btn
+                icon: "eye-outline"
+                on_press: root.showNewPasswordBtn()
+
+        MDTextField:
+            id: sheet_confirm_pass_input
+            hint_text: "New Password Confirm"
+            password: True
+            #helper_text: "Passwords not match"
+            #helper_text_mode: "on_error"
+
+        Widget:
+            size_hint_y: None
+            height: dp(40)
+
+
+<MainScreen>
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        padding: [0, 55, 0, 0]
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: self.minimum_height
+
+            MDIconButton:
+                icon: 'magnify'
+
+            MDTextField:
+                id: search_field
+                hint_text: 'Search Account'
+                on_text: root.initUI()
+
+        RecycleView:
+            id: rv
+            key_viewclass: 'viewclass'
+            key_size: 'height'
+
+            RecycleBoxLayout:
+                default_size: None, dp(90)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+
+    MDFloatingActionButtonSpeedDial:
+        data: root.btn_data
+        rotation_root_button: True
+        callback: root.actionBtn
