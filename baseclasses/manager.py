@@ -32,10 +32,12 @@ class Manager(ScreenManager):
                 return True # do not exit the app
 
     def connectDatabase(self):
-        if not os.path.isdir("/sdcard/passbank"):
-            os.mkdir("/sdcard/passbank")
+        db_path = "/sdcard/passbank/"
 
-        self.con = sqlite3.connect("/sdcard/passbank/pass.db")
+        if (not os.path.isdir(db_path)) and (not db_path == "") and (not db_path.isspace()):
+            os.mkdir(db_path)
+
+        self.con = sqlite3.connect(db_path+"pass.db")
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")

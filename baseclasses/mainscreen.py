@@ -1,6 +1,7 @@
 from kivy.uix.screenmanager import Screen
 from kivy.core.clipboard import Clipboard
 from kivy.properties import StringProperty
+from kivy.animation import Animation
 
 from kivymd.uix.list import ThreeLineIconListItem
 from kivymd.uix.bottomsheet import MDCustomBottomSheet
@@ -65,8 +66,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
         confirm_new_password = self.ids.sheet_confirm_pass_input.text
 
         ### Update Site
-        if new_site == "":
-            toast("Site is required")
+        if not new_site:
+            instance = self.ids.sheet_site_input
+            self.initFieldError(instance)
 
         elif new_site == self.site:
             pass
@@ -77,7 +79,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.site = new_site
 
-            toast(f"{self.site} successfully changed")
+            toast(f"{self.site} Successfully Changed")
         ###
 
         if not (new_email == self.email):
@@ -86,7 +88,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.email = new_email
 
-            toast("Email successfully changed")
+            toast("Email Successfully Changed")
 
         if not (new_username == self.username):
             self.cursor.execute("UPDATE accounts SET username=? WHERE site=? AND email=?",(new_username, self.site, self.email))
@@ -94,21 +96,23 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.username = new_username
 
-            toast("Username successfully changed")
+            toast("Username Successfully Changed")
 
-        if not (new_password == ""):
+        if new_password:
             if new_password == confirm_new_password:
                 encrypted = self.cipher.encrypt(new_password)
 
                 self.cursor.execute("UPDATE accounts SET password=? WHERE site=? AND email=?",(encrypted, self.site, self.email))
                 self.con.commit()
 
-                toast("Password successfully changed")
+                toast("Password Successfully Changed")
 
             else:
-                #self.ids.sheet_pass_input.error = True # Not working well
-                #self.ids.sheet_confirm_pass_input.error = True
-                toast("Passwords not match")
+                instance = self.ids.sheet_confirm_pass_input
+                self.initFieldError(instance)
+
+        else:
+            pass
 
         self.main_screen.initUI() # refresh main screen
 
@@ -173,6 +177,49 @@ class ContentCustomBottomSheet(MDBoxLayout):
             input_1.password = True
             input_2.password = True
             button.icon = "eye-outline"
+
+    def checkSiteField(self, instance, text):
+        if not text:
+            return
+
+        else:
+            self.closeFieldError(instance)
+
+    def checkConfirmField(self, instance, text):
+        if not text:
+            return
+
+        if text != self.ids.sheet_pass_input.text:
+            self.initFieldError(instance)
+
+        else:
+            self.closeFieldError(instance)
+
+    def initFieldError(self, instance):
+        instance.error = True
+
+        Animation(
+            duration=0.2, _current_error_color=instance.error_color
+        ).start(instance)
+        Animation(
+            _current_right_lbl_color=instance.error_color,
+            _current_hint_text_color=instance.error_color,
+            _current_line_color=instance.error_color,
+            _line_width=instance.width, duration=0.2, t="out_quad"
+        ).start(instance)
+
+    def closeFieldError(self, instance):
+        Animation(
+            duration=0.2, _current_error_color=(0, 0, 0, 0)
+        ).start(instance)
+        Animation(
+            duration=0.2,
+            _current_line_color=instance.line_color_focus,
+            _current_hint_text_color=instance.line_color_focus,
+            _current_right_lbl_color=instance.line_color_focus,
+        ).start(instance)
+
+        instance.error = False
 
 
 class MainScreen(Screen):

@@ -26,7 +26,9 @@
                 id: reg_pass_input
                 hint_text: "Password"
                 password: True
-                #helper_text_mode: "on_error"
+
+                helper_text_mode: "on_error"
+                on_text: root.checkPasswordField(self, self.text)
 
             MDIconButton:
                 id: reg_show_password_btn
@@ -37,7 +39,10 @@
             id: reg_confirm_pass_input
             hint_text: "Confirm Password"
             password: True
-            #helper_text_mode: "on_error"
+
+            helper_text: "Passwords not match"
+            helper_text_mode: "on_error"
+            on_text: root.checkPasswords(self, self.text)
 
         MDRaisedButton:
             text: "Register"

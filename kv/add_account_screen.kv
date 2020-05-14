@@ -21,8 +21,9 @@
         MDTextField:
             id: add_acc_site_input
             hint_text: "Site"
-            #required: True
-            #helper_text_mode: "on_error"
+
+            helper_text_mode: "on_error"
+            on_text: root.checkField(self, self.text)
 
         MDTextField:
             id: add_acc_email_input
@@ -39,8 +40,9 @@
                 id: add_acc_pass_input
                 hint_text: "Password"
                 password: True
-                #required: True
-                #helper_text_mode: "on_error"
+
+                helper_text_mode: "on_error"
+                on_text: root.checkField(self, self.text)
 
             MDIconButton:
                 id: add_acc_show_password_btn
@@ -51,8 +53,10 @@
             id: add_acc_conf_pass_input
             hint_text: "Confirm Password"
             password: True
-            #required: True
-            #helper_text_mode: "on_error"
+
+            helper_text: "Passwords not match"
+            helper_text_mode: "on_error"
+            on_text: root.checkConfirmField(self, self.text)
 
         MDRaisedButton:
             text: "Add Account"

@@ -10,7 +10,6 @@
 
     MDToolbar:
         id: sheet_toolbar
-        #title: "Edit"
         elevation: 10
         pos_hint: {"top": 1}
         right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPasswordBtn()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount()]]
@@ -26,8 +25,9 @@
         MDTextField:
             id: sheet_site_input
             hint_text: "Site"
-            #required: True
-            #helper_text_mode: "on_error"
+
+            helper_text_mode: "on_error"
+            on_text: root.checkSiteField(self, self.text)
 
         MDTextField:
             id: sheet_email_input
@@ -46,8 +46,6 @@
                 id: sheet_pass_input
                 hint_text: "Password"
                 password: True
-                #helper_text: "Passwords not match"
-                #helper_text_mode: "on_error"
 
             MDIconButton:
                 id: sheet_show_new_password_btn
@@ -58,8 +56,10 @@
             id: sheet_confirm_pass_input
             hint_text: "New Password Confirm"
             password: True
-            #helper_text: "Passwords not match"
-            #helper_text_mode: "on_error"
+
+            helper_text: "Passwords not match"
+            helper_text_mode: "on_error"
+            on_text: root.checkConfirmField(self, self.text)
 
         Widget:
             size_hint_y: None

@@ -1,4 +1,5 @@
 from kivy.uix.screenmanager import Screen
+from kivy.animation import Animation
 
 class LoginScreen(Screen):
     def __init__(self, con, cursor, cipher, password, **kwargs):
@@ -13,30 +14,18 @@ class LoginScreen(Screen):
 
         self.password = password
 
-        #self.check_input_schedule = Clock.schedule_interval(self.checkInput, 0)
-
-    def getPasswordFromDB(self):
-        self.cursor.execute("SELECT password FROM password")
-        encrypted = self.cursor.fetchall()[0][0]
-        self.password = self.cipher.decrypt(encrypted)
-
     def loginBtn(self):
-        if self.password == self.ids.login_pass_input.text:
-            self.ids.login_pass_input.error = False
+        instance = self.ids.login_pass_input
+
+        if not self.ids.login_pass_input.text:
+            self.initFieldError(instance)
+
+        elif self.password == self.ids.login_pass_input.text:
             self.manager.setMainScreen()
 
         else:
-            self.ids.login_pass_input.error = True
-    """
-    def checkInput(self, *args):
-        if self.password == self.ids.login_pass_input.text:
-            self.ids.login_pass_input.error = False
-            self.sm.current = "main_screen"
+            self.initFieldError(instance)
 
-            self.check_input_schedule.cancel()
-
-        # TODO: hide keyboard
-    """
     def showPasswordBtn(self):
         button = self.ids.login_show_password_btn
         input = self.ids.login_pass_input
@@ -48,3 +37,47 @@ class LoginScreen(Screen):
         elif button.icon == "eye-off-outline":
             input.password = True
             button.icon = "eye-outline"
+
+    def checkPassword(self, instance, text): # Works after pressing enter
+        if text == self.password:
+            self.loginBtn()
+
+        else:
+            self.initFieldError(instance)
+
+    def autoLogin(self, instance, text): # Running always
+        if not text:
+            return
+
+        else:
+            self.closeFieldError(instance)
+
+            if text == self.password:
+                pass # self.loginBtn()
+                # virtual keyboard doesn't disappear
+
+    def initFieldError(self, instance):
+        instance.error = True
+
+        Animation(
+            duration=0.2, _current_error_color=instance.error_color
+        ).start(instance)
+        Animation(
+            _current_right_lbl_color=instance.error_color,
+            _current_hint_text_color=instance.error_color,
+            _current_line_color=instance.error_color,
+            _line_width=instance.width, duration=0.2, t="out_quad"
+        ).start(instance)
+
+    def closeFieldError(self, instance):
+        Animation(
+            duration=0.2, _current_error_color=(0, 0, 0, 0)
+        ).start(instance)
+        Animation(
+            duration=0.2,
+            _current_line_color=instance.line_color_focus,
+            _current_hint_text_color=instance.line_color_focus,
+            _current_right_lbl_color=instance.line_color_focus,
+        ).start(instance)
+
+        instance.error = False
