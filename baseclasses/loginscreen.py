@@ -53,8 +53,7 @@ class LoginScreen(Screen):
             self.closeFieldError(instance)
 
             if text == self.password:
-                pass # self.loginBtn()
-                # virtual keyboard doesn't disappear
+                self.loginBtn()
 
     def initFieldError(self, instance):
         instance.error = True
