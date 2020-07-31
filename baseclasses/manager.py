@@ -72,6 +72,8 @@ class Manager(ScreenManager):
             self.setRegisterScreen()
 
     def setRegisterScreen(self):
+        Window.softinput_mode = ""
+
         Builder.load_file("kv/register_screen.kv")
 
         self.register_screen = RegisterScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="register_screen")
@@ -80,6 +82,8 @@ class Manager(ScreenManager):
         self.current = "register_screen"
 
     def setLoginScreen(self):
+        Window.softinput_mode = ""
+
         if self.has_screen("login_screen"):
             self.remove_widget(self.login_screen) # this if statement for reset screen
             del self.login_screen
@@ -94,6 +98,9 @@ class Manager(ScreenManager):
         self.current = "login_screen"
 
     def setMainScreen(self):
+        Window.release_keyboard() # for autoLogin function in loginscreen.py
+        Window.softinput_mode = ""
+
         if self.has_screen("main_screen"):
             self.main_screen.initUI()
             self.current = "main_screen"
@@ -107,6 +114,8 @@ class Manager(ScreenManager):
             self.current = "main_screen"
 
     def setAddAccountScreen(self):
+        Window.softinput_mode = "below_target"
+
         if self.has_screen("add_account_screen"):
             self.remove_widget(self.add_account_screen) # this if statement for reset screen
             del self.add_account_screen

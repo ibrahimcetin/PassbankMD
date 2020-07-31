@@ -1,5 +1,6 @@
 from kivy.uix.screenmanager import Screen
 from kivy.core.clipboard import Clipboard
+from kivy.core.window import Window
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 
@@ -18,6 +19,21 @@ import random
 
 class CustomThreeLineIconListItem(ThreeLineIconListItem):
     icon = StringProperty()
+
+
+class MyMDCustomBottomSheet(MDCustomBottomSheet):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_open(self):
+        Window.softinput_mode = "pan"
+
+        return super().on_open()
+
+    def on_dismiss(self):
+        Window.softinput_mode = ""
+
+        return super().on_dismiss()
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
@@ -129,7 +145,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                     text="No", on_press=self.closeDialog
                 )]
         )
-        self.dialog.ids.text.text_color = ""
+        self.dialog.ids.text.text_color = [0,0,0]
         self.dialog.open()
 
     def deleteAccount(self, button):
@@ -157,7 +173,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 MDRaisedButton(text="Close", on_press=self.closeDialog)
             ]
         )
-        self.dialog.ids.text.text_color = ""
+        self.dialog.ids.text.text_color = [0,0,0]
         self.dialog.open()
 
     def closeDialog(self, button):
@@ -241,6 +257,8 @@ class MainScreen(Screen):
 
         self.chars = string.ascii_letters + string.digits + string.punctuation
 
+        self.initUI()
+
     def getAccounts(self):
         self.cursor.execute("SELECT site,email,username FROM accounts ORDER BY site COLLATE NOCASE ASC")
         self.accounts = self.cursor.fetchall()
@@ -248,7 +266,7 @@ class MainScreen(Screen):
     def initUI(self):
         self.getAccounts()
 
-        search= False
+        search = False
         search_text = self.ids.search_field.text
         if search_text:
             search = True
@@ -297,7 +315,7 @@ class MainScreen(Screen):
 
     def actionBtn(self, button):
         if button.icon == "key":
-            password = "".join([random.choice(self.chars) for i in range(0, 15)])
+            password = "".join(random.sample(self.chars, 15))
             Clipboard.copy(password)
             toast(f"{password} copied")
 
@@ -309,5 +327,5 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MDCustomBottomSheet(screen=ContentCustomBottomSheet(self, self.con, self.cursor, self.cipher, site, email, username))
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(self, self.con, self.cursor, self.cipher, site, email, username))
         self.bottom_sheet.open()
