@@ -1,0 +1,29 @@
+<CustomOneLineIconListItem>
+    IconLeftWidget:
+        icon: root.icon
+
+<OptionsScreen>
+    MDToolbar:
+        title: "Options"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    ScrollView:
+        y: -app.theme_cls.standard_increment
+
+        MDList:
+            id: container
+
+<DatabaseOptionsScreen>:
+    MDToolbar:
+        title: "Database"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    ScrollView:
+        y: -app.theme_cls.standard_increment
+
+        MDList:
+            id: container

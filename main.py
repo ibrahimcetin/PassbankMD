@@ -26,7 +26,11 @@ class Passbank(MDApp):
     def on_resume(self):
         # I used on_resume method instead of on_pause method when change screen to login screen
         # beacuse on_pause method not working well.
-        if self.manager.current_screen.name == "main_screen":
-            self.manager.setLoginScreen()
+        try:
+            if self.manager.current_screen.name == "main_screen":
+                self.manager.setLoginScreen()
+        except:
+            pass
+
 
 Passbank().run()

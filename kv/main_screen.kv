@@ -70,7 +70,7 @@
     MDBoxLayout:
         orientation: 'vertical'
         spacing: dp(10)
-        padding: [0, 55, 0, 0]
+        padding: [0, dp(10)]
 
         MDBoxLayout:
             size_hint_y: None
@@ -83,6 +83,10 @@
                 id: search_field
                 hint_text: 'Search Account'
                 on_text: root.initUI()
+
+            MDIconButton:
+                icon: 'cog-outline'
+                on_press: root.manager.setOptionsScreen()
 
         RecycleView:
             id: rv

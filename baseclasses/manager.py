@@ -7,6 +7,7 @@ from baseclasses.registerscreen import RegisterScreen
 from baseclasses.loginscreen import LoginScreen
 from baseclasses.mainscreen import MainScreen
 from baseclasses.addaccountscreen import AddAccountScreen
+from baseclasses.optionsscreen import OptionsScreen, DatabaseOptionsScreen
 
 import os
 import sqlite3
@@ -20,6 +21,12 @@ class Manager(ScreenManager):
         # FadeTransition disabled because when run on_resume (or on_pause) method, it give error.
         Window.bind(on_keyboard=self.on_key)
 
+        self.con = None
+        self.cursor = None
+        self.cipher = None
+        self.password = None
+        self.file_manager_open = None
+
         self.setStartScreen()
 
     def on_key(self, window, key, *args):
@@ -27,17 +34,20 @@ class Manager(ScreenManager):
             if self.current_screen.name == "register_screen" or self.current_screen.name == "login_screen" or self.current_screen.name == "main_screen":
                 return False # exit the app
 
-            if self.current_screen.name == "add_account_screen":
+            elif self.current_screen.name == "add_account_screen" or self.current_screen.name == "options_screen":
                 self.setMainScreen()
                 return True # do not exit the app
 
+            elif self.current_screen.name == "database_options_screen":
+                self.setOptionsScreen()
+                return True
+
+            if self.file_manager_open == True:
+                self.database_options_screen.file_manager.back()
+                return True
+
     def connectDatabase(self):
-        db_path = "/sdcard/passbank/"
-
-        if (not os.path.isdir(db_path)) and (not db_path == "") and (not db_path.isspace()):
-            os.mkdir(db_path)
-
-        self.con = sqlite3.connect(db_path+"pass.db")
+        self.con = sqlite3.connect("pass.db")
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
@@ -61,9 +71,7 @@ class Manager(ScreenManager):
 
     def setStartScreen(self):
         self.connectDatabase()
-
         self.getCipher()
-
         self.getPasswordFromDB()
 
         if self.password:
@@ -129,3 +137,28 @@ class Manager(ScreenManager):
         self.add_account_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
         self.current = "add_account_screen"
 
+    def setOptionsScreen(self):
+        Window.softinput_mode = ""
+
+        if self.has_screen("options_screen"):
+            self.current = "options_screen"
+
+        else:
+            Builder.load_file("kv/options_screen.kv") # for load once
+
+            self.options_screen = OptionsScreen(name="options_screen")
+            self.add_widget(self.options_screen)
+            self.options_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
+            self.current = "options_screen"
+
+    def setDatabaseOptionsScreen(self):
+        Window.softinput_mode = ""
+
+        if self.has_screen("database_options_screen"):
+            self.current = "database_options_screen"
+
+        else:
+            self.database_options_screen = DatabaseOptionsScreen(name="database_options_screen")
+            self.add_widget(self.database_options_screen)
+            self.database_options_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
+            self.current = "database_options_screen"
