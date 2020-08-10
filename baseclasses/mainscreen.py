@@ -279,7 +279,7 @@ class MainScreen(Screen):
                 icon = "github-circle"
 
             if icon not in md_icons.keys():
-                icon = ""
+                icon = "account-circle-outline"
             ###
 
             # Set email and username
