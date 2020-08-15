@@ -1,3 +1,7 @@
+import string
+import random
+import shutil
+
 from kivy.uix.screenmanager import Screen
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
@@ -12,9 +16,6 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.button import MDRaisedButton
 from kivymd.icon_definitions import md_icons
 from kivymd.toast import toast
-
-import string
-import random
 
 
 class CustomThreeLineIconListItem(ThreeLineIconListItem):
@@ -37,30 +38,32 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
-    def __init__(self, main_screen, con, cursor, cipher, site, email, username, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__()
 
-        self.main_screen = main_screen # for refresh screen after account delete or update
+        self.main_screen = kwargs.get("main_screen") # for refresh screen after account delete or update
 
-        self.con = con
-        self.cursor = cursor
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
 
-        self.cipher = cipher
+        self.site = kwargs.get("site")
+        self.email = kwargs.get("email")
+        self.username = kwargs.get("username")
 
-        if email == " ":
-            email = ""
+        if self.email == " ":
+            self.email = ""
 
-        if username == " ":
-            username = ""
-
-        self.site = site
-        self.email = email
-        self.username = username
+        if self.username == " ":
+            self.username = ""
 
         self.ids.sheet_toolbar.title = self.site
         self.ids.sheet_site_input.text = self.site
         self.ids.sheet_email_input.text = self.email
         self.ids.sheet_username_input.text = self.username
+
+        self.auto_backup = kwargs.get("auto_backup")
+        self.auto_backup_location = kwargs.get("auto_backup_location")
 
     def copyPassword(self):
         self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
@@ -70,8 +73,6 @@ class ContentCustomBottomSheet(MDBoxLayout):
         Clipboard.copy(password)
 
         toast(f"{self.site} password copied")
-
-        #print(self.ids.keys())
 
     def updateAccount(self):
         new_site = self.ids.sheet_site_input.text
@@ -127,8 +128,8 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 instance = self.ids.sheet_confirm_pass_input
                 self.initFieldError(instance)
 
-        else:
-            pass
+        if self.auto_backup: # auto backup
+            shutil.copy2("pass.db", self.auto_backup_location)
 
         self.main_screen.initUI() # refresh main screen
 
@@ -156,6 +157,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         self.dialog.dismiss()
         self.main_screen.bottom_sheet.dismiss()
+
+        if self.auto_backup:
+            shutil.copy2("pass.db", self.auto_backup_location)
 
         self.main_screen.initUI() # refresh main screen
 
@@ -245,15 +249,12 @@ class MainScreen(Screen):
             "clipboard": "Clear Clipboard"
     }
 
-    def __init__(self, con, cursor, cipher, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
 
-        self.manager = None
-
-        self.con = con
-        self.cursor = cursor
-
-        self.cipher = cipher
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
 
         self.chars = string.ascii_letters + string.digits + string.punctuation
 
@@ -264,6 +265,7 @@ class MainScreen(Screen):
         self.accounts = self.cursor.fetchall()
 
     def initUI(self):
+        self.getAutoBackupOptions()
         self.getAccounts()
 
         search = False
@@ -327,5 +329,12 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(self, self.con, self.cursor, self.cipher, site, email, username))
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location))
         self.bottom_sheet.open()
+
+    def getAutoBackupOptions(self):
+        self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
+        options = self.cursor.fetchall()[0]
+
+        self.auto_backup = True if options[0] == 1 else False
+        self.auto_backup_location = options[1]

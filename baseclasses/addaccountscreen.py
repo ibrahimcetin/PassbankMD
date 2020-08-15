@@ -1,3 +1,5 @@
+import shutil
+
 from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
 
@@ -5,15 +7,14 @@ from kivymd.toast import toast
 
 
 class AddAccountScreen(Screen):
-    def __init__(self, con, cursor, cipher, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
 
-        self.manager = None
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
 
-        self.con = con
-        self.cursor = cursor
-
-        self.cipher = cipher
+        self.getAutoBackupOptions()
 
     def goBackBtn(self):
         self.manager.setMainScreen()
@@ -43,11 +44,21 @@ class AddAccountScreen(Screen):
 
                 toast(f"{site} Account Added")
 
-                self.manager.setMainScreen()
+                if self.auto_backup: # auto backup
+                    shutil.copy2("pass.db", self.auto_backup_location)
+
+                self.manager.setMainScreen() # refresh main screen
 
         else:
             instance = self.ids.add_acc_conf_pass_input
             self.initFieldError(instance)
+
+    def getAutoBackupOptions(self):
+        self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
+        options = self.cursor.fetchall()[0]
+
+        self.auto_backup = True if options[0] == 1 else False
+        self.auto_backup_location = options[1]
 
     def showPasswordBtn(self):
         button = self.ids.add_acc_show_password_btn

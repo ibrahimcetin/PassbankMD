@@ -15,7 +15,7 @@ import sqlite3
 
 class Manager(ScreenManager):
     def __init__(self, app, *args, **kwargs):
-        super(Manager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.transition = NoTransition() # FadeTransition(duration=0.2, clearcolor=app.theme_cls.bg_dark)
         # FadeTransition disabled because when run on_resume (or on_pause) method, it give error.
@@ -51,7 +51,7 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS password (password TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT)")
 
     def getCipher(self):
         key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"
@@ -60,7 +60,7 @@ class Manager(ScreenManager):
         self.cipher = AESCipher(key, iv)
 
     def getPasswordFromDB(self):
-        self.cursor.execute("SELECT password FROM password")
+        self.cursor.execute("SELECT master_password FROM options")
         encrypted = self.cursor.fetchone()
 
         if encrypted:
@@ -86,7 +86,6 @@ class Manager(ScreenManager):
 
         self.register_screen = RegisterScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="register_screen")
         self.add_widget(self.register_screen)
-        self.register_screen.manager = self
         self.current = "register_screen"
 
     def setLoginScreen(self):
@@ -100,9 +99,8 @@ class Manager(ScreenManager):
             Builder.load_file("kv/login_screen.kv") # for load once
 
         # always run in this method
-        self.login_screen = LoginScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, password=self.password, name="login_screen")
+        self.login_screen = LoginScreen(cursor=self.cursor, cipher=self.cipher, password=self.password, name="login_screen")
         self.add_widget(self.login_screen)
-        self.login_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
         self.current = "login_screen"
 
     def setMainScreen(self):
@@ -118,7 +116,6 @@ class Manager(ScreenManager):
 
             self.main_screen = MainScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="main_screen")
             self.add_widget(self.main_screen)
-            self.main_screen.manager = self
             self.current = "main_screen"
 
     def setAddAccountScreen(self):
@@ -134,7 +131,6 @@ class Manager(ScreenManager):
         # always run in this method
         self.add_account_screen = AddAccountScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="add_account_screen")
         self.add_widget(self.add_account_screen)
-        self.add_account_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
         self.current = "add_account_screen"
 
     def setOptionsScreen(self):
@@ -148,7 +144,6 @@ class Manager(ScreenManager):
 
             self.options_screen = OptionsScreen(name="options_screen")
             self.add_widget(self.options_screen)
-            self.options_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
             self.current = "options_screen"
 
     def setDatabaseOptionsScreen(self):
@@ -158,7 +153,6 @@ class Manager(ScreenManager):
             self.current = "database_options_screen"
 
         else:
-            self.database_options_screen = DatabaseOptionsScreen(name="database_options_screen")
+            self.database_options_screen = DatabaseOptionsScreen(con=self.con, cursor=self.cursor, name="database_options_screen")
             self.add_widget(self.database_options_screen)
-            self.database_options_screen.manager = self # This line exists because if when i giving 'self'(manager) as argument to PostDownloaderScreen, i get error. This is a escape from error.
             self.current = "database_options_screen"

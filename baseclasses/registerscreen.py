@@ -1,19 +1,21 @@
+import os
+
 from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
+from kivy.utils import platform
 
 from kivymd.toast import toast
 
 
 class RegisterScreen(Screen):
-    def __init__(self, con, cursor, cipher, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
 
-        self.manager = None
+        # self.manager defined in Screen class when screen added to screen manager
 
-        self.con = con
-        self.cursor = cursor
-
-        self.cipher = cipher
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
 
     def registerBtn(self):
         password_field = self.ids.reg_pass_input
@@ -27,7 +29,9 @@ class RegisterScreen(Screen):
 
             encrypted = self.cipher.encrypt(password_field.text)
 
-            self.cursor.execute("INSERT INTO password VALUES(?)",(encrypted,))
+            path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
+
+            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?)", (encrypted, "a_to_z", 0, path, 1))
             self.con.commit()
 
             self.manager.setMainScreen()

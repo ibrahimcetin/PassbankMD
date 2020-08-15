@@ -2,17 +2,18 @@ from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
 
 class LoginScreen(Screen):
-    def __init__(self, con, cursor, cipher, password, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
 
-        self.manager = None
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
+        self.password = kwargs.get("password")
 
-        self.con = con
-        self.cursor = cursor
+        self.setOptions()
 
-        self.cipher = cipher
-
-        self.password = password
+    def setOptions(self):
+        self.cursor.execute("SELECT fast_login FROM options")
+        self.fast_login = self.cursor.fetchone()
 
     def loginBtn(self):
         instance = self.ids.login_pass_input
@@ -45,8 +46,8 @@ class LoginScreen(Screen):
         else:
             self.initFieldError(instance)
 
-    def autoLogin(self, instance, text): # Running always
-        if not text:
+    def fastLogin(self, instance, text):
+        if (not text) or (self.fast_login == 0):
             return
 
         else:

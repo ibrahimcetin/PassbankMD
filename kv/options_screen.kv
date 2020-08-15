@@ -1,3 +1,6 @@
+#:import m_res kivymd.material_resources
+
+
 <CustomOneLineIconListItem>
     IconLeftWidget:
         icon: root.icon
@@ -15,6 +18,15 @@
         MDList:
             id: container
 
+
+<CustomTwoLineListItem>:
+    BoxLayout:
+        id: _right_container
+        size_hint: None, None
+        x: root.x + root.width - m_res.HORIZ_MARGINS - self.width
+        y: root.y + root.height/2 - self.height/2
+        size: dp(48), dp(48)
+
 <DatabaseOptionsScreen>:
     MDToolbar:
         title: "Database"
@@ -25,5 +37,40 @@
     ScrollView:
         y: -app.theme_cls.standard_increment
 
-        MDList:
-            id: container
+        MDGridLayout:
+            cols: 1
+            adaptive_height: True
+            padding: [dp(50), dp(25)]
+
+            MDLabel:
+                text: "DATABASE"
+                color: 1,0,0,1
+
+            MDList:
+                id: database_container
+
+            Widget:
+                size_hint: None, None
+                height: dp(25)
+
+            MDLabel:
+                text: "AUTO BACKUP"
+                color: 1,0,0,1
+
+            MDList:
+                CustomTwoLineListItem:
+                    id: custom_list_item
+                    text: "Auto Backup"
+                    secondary_text: "Create auto backups on your storage"
+                    on_press: switch.trigger_action(duration=0.01)
+
+                    RightSwitch:
+                        id: switch
+                        on_press: root.checkPlatform(self)
+
+                TwoLineListItem:
+                    id: location_list_item
+                    text: "Location"
+                    disabled: not switch.active
+                    on_press: root.autoBackupLocationFunction()
+
