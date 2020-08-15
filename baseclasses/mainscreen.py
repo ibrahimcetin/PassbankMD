@@ -8,7 +8,7 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 
-from kivymd.uix.list import ThreeLineIconListItem
+from kivymd.uix.list import OneLineIconListItem, TwoLineIconListItem, ThreeLineIconListItem
 from kivymd.uix.bottomsheet import MDCustomBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dialog import MDDialog
@@ -18,7 +18,13 @@ from kivymd.icon_definitions import md_icons
 from kivymd.toast import toast
 
 
-class CustomThreeLineIconListItem(ThreeLineIconListItem):
+class RVOneLineIconListItem(OneLineIconListItem):
+    icon = StringProperty()
+
+class RVTwoLineIconListItem(TwoLineIconListItem):
+    icon = StringProperty()
+
+class RVThreeLineIconListItem(ThreeLineIconListItem):
     icon = StringProperty()
 
 
@@ -260,12 +266,32 @@ class MainScreen(Screen):
 
         self.initUI()
 
+    def getOptions(self):
+        self.cursor.execute("SELECT sort_by, list_subtitles, auto_backup, auto_backup_location FROM options")
+        options = self.cursor.fetchall()[0]
+
+        self.sort_by = options[0]
+        self.list_subtitles_options = [bool(int(o)) for o in options[1].split(",")]
+
+        self.auto_backup = True if options[2] == 1 else False
+        self.auto_backup_location = options[3]
+
     def getAccounts(self):
-        self.cursor.execute("SELECT site,email,username FROM accounts ORDER BY site COLLATE NOCASE ASC")
+        if self.sort_by == "a_to_z":
+            option = "ORDER BY site COLLATE NOCASE ASC"
+        elif self.sort_by == "z_to_a":
+            option = "ORDER BY site COLLATE NOCASE DESC"
+        else:
+            option = ""
+
+        self.cursor.execute(f"SELECT site,email,username FROM accounts {option}")
         self.accounts = self.cursor.fetchall()
 
+        if self.sort_by == "last_to_first":
+            self.accounts.reverse()
+
     def initUI(self):
-        self.getAutoBackupOptions()
+        self.getOptions()
         self.getAccounts()
 
         search = False
@@ -292,15 +318,32 @@ class MainScreen(Screen):
                 username = " "
             ###
 
-            self.ids.rv.data.append(
-                {
-                    "viewclass": "CustomThreeLineIconListItem",
+            # Set options
+            base = {
                     "icon": icon,
                     "text": site,
-                    "secondary_text": email,
-                    "tertiary_text": username,
                     "on_press": lambda site=site, email=email, username=username: self.openBottomSheet(site, email, username),
-                }
+                    }
+
+            if all(self.list_subtitles_options):
+                base["viewclass"] = "RVThreeLineIconListItem"
+                base["secondary_text"] = email
+                base["tertiary_text"] = username
+
+            elif self.list_subtitles_options[0]:
+                base["viewclass"] = "RVTwoLineIconListItem"
+                base["secondary_text"] = email
+
+            elif self.list_subtitles_options[1]:
+                base["viewclass"] = "RVTwoLineIconListItem"
+                base["secondary_text"] = username
+
+            else:
+                base["viewclass"] = "RVOneLineIconListItem"
+            ###
+
+            self.ids.rv.data.append(
+                base
             )
 
         self.ids.rv.data = []
@@ -332,9 +375,3 @@ class MainScreen(Screen):
         self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location))
         self.bottom_sheet.open()
 
-    def getAutoBackupOptions(self):
-        self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
-        options = self.cursor.fetchall()[0]
-
-        self.auto_backup = True if options[0] == 1 else False
-        self.auto_backup_location = options[1]

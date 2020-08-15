@@ -19,7 +19,54 @@
             id: container
 
 
-<CustomTwoLineListItem>:
+<SortSelectionItem>
+    id: selection_item
+    on_press: check.trigger_action(duration=0)
+
+    CheckboxLeftWidget:
+        id: check
+        group: "check"
+        on_press: root.screen.setSortByOption(selection_item.text)
+
+<SubtitlesSelectionItem>
+    on_release: check.trigger_action(duration=0)
+
+    LeftCheckbox:
+        id: check
+
+<AppearanceOptionsScreen>:
+    MDToolbar:
+        title: "Appearance"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    ScrollView:
+        y: -app.theme_cls.standard_increment
+
+        MDGridLayout:
+            cols: 1
+            adaptive_height: True
+            padding: [dp(50), dp(25)]
+
+            MDLabel:
+                text: "APPEARANCE"
+                font_style: "Button"
+                color: 1,0,0,1
+
+            MDList:
+                TwoLineListItem:
+                    id: sort_by_item
+                    text: "Sort By"
+                    on_press: root.sortByButton()
+
+                TwoLineListItem:
+                    id: list_subtitles_item
+                    text: "List Subtitles"
+                    on_press: root.listSubtitlesButton()
+
+
+<TwoLineListItemWithSwitch>:
     BoxLayout:
         id: _right_container
         size_hint: None, None
@@ -44,6 +91,7 @@
 
             MDLabel:
                 text: "DATABASE"
+                font_style: "Button"
                 color: 1,0,0,1
 
             MDList:
@@ -55,18 +103,18 @@
 
             MDLabel:
                 text: "AUTO BACKUP"
+                font_style: "Button"
                 color: 1,0,0,1
 
             MDList:
-                CustomTwoLineListItem:
-                    id: custom_list_item
+                TwoLineListItemWithSwitch:
                     text: "Auto Backup"
                     secondary_text: "Create auto backups on your storage"
-                    on_press: switch.trigger_action(duration=0.01)
+                    on_press: switch.trigger_action(duration=0)
 
                     RightSwitch:
                         id: switch
-                        on_press: root.checkPlatform(self)
+                        on_active: root.checkPlatform(self)
 
                 TwoLineListItem:
                     id: location_list_item

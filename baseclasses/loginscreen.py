@@ -7,13 +7,15 @@ class LoginScreen(Screen):
 
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
-        self.password = kwargs.get("password")
 
-        self.setOptions()
+        self.getOptions()
 
-    def setOptions(self):
-        self.cursor.execute("SELECT fast_login FROM options")
-        self.fast_login = self.cursor.fetchone()
+    def getOptions(self):
+        self.cursor.execute("SELECT master_password, fast_login FROM options")
+        options = self.cursor.fetchone()
+
+        self.master_password = self.cipher.decrypt(options[0])
+        self.fast_login = options[1]
 
     def loginBtn(self):
         instance = self.ids.login_pass_input
@@ -21,7 +23,7 @@ class LoginScreen(Screen):
         if not self.ids.login_pass_input.text:
             self.initFieldError(instance)
 
-        elif self.password == self.ids.login_pass_input.text:
+        elif self.master_password == self.ids.login_pass_input.text:
             self.manager.setMainScreen()
 
         else:
@@ -29,14 +31,14 @@ class LoginScreen(Screen):
 
     def showPasswordBtn(self):
         button = self.ids.login_show_password_btn
-        input = self.ids.login_pass_input
+        field = self.ids.login_pass_input
 
         if button.icon == "eye-outline":
-            input.password = False
+            field.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input.password = True
+            field.password = True
             button.icon = "eye-outline"
 
     def checkPassword(self, instance, text): # Works after pressing enter
@@ -53,7 +55,7 @@ class LoginScreen(Screen):
         else:
             self.closeFieldError(instance)
 
-            if text == self.password:
+            if text == self.master_password:
                 self.loginBtn()
 
     def initFieldError(self, instance):

@@ -26,6 +26,7 @@
                 id: reg_pass_input
                 hint_text: "Password"
                 password: True
+                write_tab: False
 
                 helper_text_mode: "on_error"
                 on_text: root.checkPasswordField(self, self.text)
@@ -39,6 +40,7 @@
             id: reg_confirm_pass_input
             hint_text: "Confirm Password"
             password: True
+            write_tab: False
 
             helper_text: "Passwords not match"
             helper_text_mode: "on_error"

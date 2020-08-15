@@ -1,6 +1,17 @@
-<CustomThreeLineIconListItem>
+<RVOneLineIconListItem>
     IconLeftWidget:
         icon: root.icon
+        on_press: root.trigger_action(duration=0)
+
+<RVTwoLineIconListItem>
+    IconLeftWidget:
+        icon: root.icon
+        on_press: root.trigger_action(duration=0)
+
+<RVThreeLineIconListItem>
+    IconLeftWidget:
+        icon: root.icon
+        on_press: root.trigger_action(duration=0)
 
 
 <ContentCustomBottomSheet>:
@@ -25,6 +36,7 @@
         MDTextField:
             id: sheet_site_input
             hint_text: "Site"
+            write_tab: False
 
             helper_text_mode: "on_error"
             on_text: root.checkSiteField(self, self.text)
@@ -32,10 +44,12 @@
         MDTextField:
             id: sheet_email_input
             hint_text: "EMail"
+            write_tab: False
 
         MDTextField:
             id: sheet_username_input
             hint_text: "Username"
+            write_tab: False
 
         MDSeparator:
 
@@ -46,6 +60,7 @@
                 id: sheet_pass_input
                 hint_text: "Password"
                 password: True
+                write_tab: False
 
             MDIconButton:
                 id: sheet_show_new_password_btn
@@ -56,6 +71,7 @@
             id: sheet_confirm_pass_input
             hint_text: "New Password Confirm"
             password: True
+            write_tab: False
 
             helper_text: "Passwords not match"
             helper_text_mode: "on_error"
@@ -94,7 +110,7 @@
             key_size: 'height'
 
             RecycleBoxLayout:
-                default_size: None, dp(90)
+                default_size: None, None
                 default_size_hint: 1, None
                 size_hint_y: None
                 height: self.minimum_height

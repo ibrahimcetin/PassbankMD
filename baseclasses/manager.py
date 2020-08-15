@@ -1,24 +1,23 @@
+import os
+import sqlite3
+
 from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
+from kivy.uix.screenmanager import ScreenManager
 from kivy.core.window import Window
 
-from pyaes import AESCipher
 from baseclasses.registerscreen import RegisterScreen
 from baseclasses.loginscreen import LoginScreen
 from baseclasses.mainscreen import MainScreen
 from baseclasses.addaccountscreen import AddAccountScreen
-from baseclasses.optionsscreen import OptionsScreen, DatabaseOptionsScreen
+from baseclasses.optionsscreen import OptionsScreen, AppearanceOptionsScreen, DatabaseOptionsScreen
 
-import os
-import sqlite3
+from pyaes import AESCipher
 
 
 class Manager(ScreenManager):
-    def __init__(self, app, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.transition = NoTransition() # FadeTransition(duration=0.2, clearcolor=app.theme_cls.bg_dark)
-        # FadeTransition disabled because when run on_resume (or on_pause) method, it give error.
         Window.bind(on_keyboard=self.on_key)
 
         self.con = None
@@ -38,7 +37,7 @@ class Manager(ScreenManager):
                 self.setMainScreen()
                 return True # do not exit the app
 
-            elif self.current_screen.name == "database_options_screen":
+            elif self.current_screen.name == "appearance_options_screen" or self.current_screen.name == "database_options_screen":
                 self.setOptionsScreen()
                 return True
 
@@ -47,11 +46,11 @@ class Manager(ScreenManager):
                 return True
 
     def connectDatabase(self):
-        self.con = sqlite3.connect("pass.db")
+        self.con = sqlite3.connect("pass.db", check_same_thread=False)
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT)")
 
     def getCipher(self):
         key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"
@@ -63,18 +62,14 @@ class Manager(ScreenManager):
         self.cursor.execute("SELECT master_password FROM options")
         encrypted = self.cursor.fetchone()
 
-        if encrypted:
-            self.password = self.cipher.decrypt(encrypted[0])
-
-        else:
-            self.password = False
+        self.master_password_exists = True if encrypted else False
 
     def setStartScreen(self):
         self.connectDatabase()
         self.getCipher()
         self.getPasswordFromDB()
 
-        if self.password:
+        if self.master_password_exists:
             self.setLoginScreen()
         else:
             self.setRegisterScreen()
@@ -99,7 +94,7 @@ class Manager(ScreenManager):
             Builder.load_file("kv/login_screen.kv") # for load once
 
         # always run in this method
-        self.login_screen = LoginScreen(cursor=self.cursor, cipher=self.cipher, password=self.password, name="login_screen")
+        self.login_screen = LoginScreen(cursor=self.cursor, cipher=self.cipher, name="login_screen")
         self.add_widget(self.login_screen)
         self.current = "login_screen"
 
@@ -134,8 +129,6 @@ class Manager(ScreenManager):
         self.current = "add_account_screen"
 
     def setOptionsScreen(self):
-        Window.softinput_mode = ""
-
         if self.has_screen("options_screen"):
             self.current = "options_screen"
 
@@ -146,9 +139,16 @@ class Manager(ScreenManager):
             self.add_widget(self.options_screen)
             self.current = "options_screen"
 
-    def setDatabaseOptionsScreen(self):
-        Window.softinput_mode = ""
+    def setAppearanceOptionsScreen(self):
+        if self.has_screen("appearance_options_screen"):
+            self.current = "appearance_options_screen"
 
+        else:
+            self.appearance_options_screen = AppearanceOptionsScreen(con=self.con, cursor=self.cursor, name="appearance_options_screen")
+            self.add_widget(self.appearance_options_screen)
+            self.current = "appearance_options_screen"
+
+    def setDatabaseOptionsScreen(self):
         if self.has_screen("database_options_screen"):
             self.current = "database_options_screen"
 

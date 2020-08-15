@@ -21,6 +21,7 @@
         MDTextField:
             id: add_acc_site_input
             hint_text: "Site"
+            write_tab: False
 
             helper_text_mode: "on_error"
             on_text: root.checkField(self, self.text)
@@ -28,10 +29,12 @@
         MDTextField:
             id: add_acc_email_input
             hint_text: "EMail"
+            write_tab: False
 
         MDTextField:
             id: add_acc_username_input
             hint_text: "Username"
+            write_tab: False
 
         MDBoxLayout:
             adaptive_height: True
@@ -40,6 +43,7 @@
                 id: add_acc_pass_input
                 hint_text: "Password"
                 password: True
+                write_tab: False
 
                 helper_text_mode: "on_error"
                 on_text: root.checkField(self, self.text)
@@ -53,6 +57,7 @@
             id: add_acc_conf_pass_input
             hint_text: "Confirm Password"
             password: True
+            write_tab: False
 
             helper_text: "Passwords not match"
             helper_text_mode: "on_error"

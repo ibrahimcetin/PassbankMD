@@ -25,13 +25,12 @@ class RegisterScreen(Screen):
             self.initFieldError(password_field)
 
         elif password_field.text == confirm_password_field.text:
-            self.manager.connectDatabase()
-
-            encrypted = self.cipher.encrypt(password_field.text)
+            self.manager.password = password_field.text
+            encrypted = self.cipher.encrypt(self.manager.password)
 
             path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
 
-            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?)", (encrypted, "a_to_z", 0, path, 1))
+            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?)", (encrypted, "a_to_z", "1,1", 0, path, 1))
             self.con.commit()
 
             self.manager.setMainScreen()
