@@ -14,7 +14,6 @@ from .filemanager import MDFileManager
 from kivymd.toast import toast
 
 
-
 class CustomOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
 
@@ -184,14 +183,19 @@ class DatabaseOptionsScreen(Screen):
         self.file_manager_start_path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
 
         self.getOptions()
+        self.setOptions()
         self.initUI()
 
     def getOptions(self):
         self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
         options = self.cursor.fetchall()[0]
 
-        self.ids.switch.active = options[0]
-        self.ids.location_list_item.secondary_text = options[1]
+        self.auto_backup = options[0]
+        self.auto_backup_location = options[1]
+
+    def setOptions(self):
+        self.ids.switch.active = self.auto_backup
+        self.ids.location_list_item.secondary_text = self.auto_backup_location
 
     def initUI(self):
         data = [("Backup Database", "Backup encrypted database"), ("Restore Database", "Restore encrypted database")]
@@ -213,7 +217,8 @@ class DatabaseOptionsScreen(Screen):
                     self.databaseFunctions(button.text)
             else:
                 if isinstance(button, MDSwitch):
-                    request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], partial(self.autoBackupFunction, active=button.active))
+                    if button.active: # request_permissions only run when switch active
+                        request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], partial(self.autoBackupFunction, active=button.active))
                 else:
                     request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], partial(self.databaseFunctions, text=button.text))
 
@@ -225,20 +230,24 @@ class DatabaseOptionsScreen(Screen):
 
     def autoBackupFunction(self, permissions=None, grant_result=[True, True], active=False):
         if not grant_result == [True, True]:
+            self.auto_backup = 0
+            self.ids.switch.active = False # this line run switch's on_active method
+                                           # that's why if request_permissions is not run only while switch is active,
+                                           # request_permissions are run twice
+
+            self.cursor.execute("UPDATE options SET auto_backup = 0")
+            self.con.commit()
+
             toast("Please, Allow Storage Permission")
             return
 
-        if active:
-            new_status = 0 # False
-        else:
-            new_status = 1 # True
+        status = 1 if active else 0
 
-        self.cursor.execute("UPDATE options SET auto_backup = ?", (new_status,))
+        self.cursor.execute("UPDATE options SET auto_backup = ?", (status,))
         self.con.commit()
 
-        if new_status == 1:
-            path = self.ids.location_list_item.secondary_text
-            shutil.copy2("pass.db", path)
+        if status == 1:
+            shutil.copy2("pass.db", self.auto_backup_location)
 
     def autoBackupLocationFunction(self):
         self.file_manager = MDFileManager(
@@ -258,7 +267,8 @@ class DatabaseOptionsScreen(Screen):
             self.cursor.execute("UPDATE options SET auto_backup_location = ?", (path,))
             self.con.commit()
 
-            self.ids.location_list_item.secondary_text = path
+            self.auto_backup_location = path
+            self.setOptions()
 
         else:
             toast("Please Select a Directory")
