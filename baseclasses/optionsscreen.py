@@ -248,12 +248,12 @@ class DatabaseOptionsScreen(Screen):
             toast("Please, Allow Storage Permission")
             return
 
-        status = 1 if active else 0
+        self.auto_backup = 1 if active else 0
 
-        self.cursor.execute("UPDATE options SET auto_backup = ?", (status,))
+        self.cursor.execute("UPDATE options SET auto_backup = ?", (self.auto_backup,))
         self.con.commit()
 
-        if status == 1:
+        if self.auto_backup == 1:
             shutil.copy2("pass.db", self.auto_backup_location)
 
     def autoBackupLocationFunction(self):
