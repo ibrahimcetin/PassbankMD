@@ -140,7 +140,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             output = ", ".join(changed)
             toast(f"{output} Successfully Changed")
 
-        if self.auto_backup: # auto backup
+        if self.auto_backup and len(changed) > 0: # auto backup
             shutil.copy2("pass.db", self.auto_backup_location)
 
         self.main_screen.initUI() # refresh main screen
@@ -374,6 +374,6 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location))
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location), animation=True, duration_opening=0.1)
         self.bottom_sheet.open()
 
