@@ -214,7 +214,7 @@ class DatabaseOptionsScreen(Screen):
                 if isinstance(button, MDSwitch):
                     self.autoBackupFunction(active=button.active)
                 else:
-                    self.databaseFunctions(button.text)
+                    self.databaseFunctions(text=button.text)
             else:
                 if isinstance(button, MDSwitch):
                     if button.active: # request_permissions only run when switch active
