@@ -460,7 +460,7 @@ class ChangeMasterPasswordScreen(Screen):
         if not text:
             return
 
-        if text != instance.text:
+        if text != self.ids.new_password_field.text:
             self.initFieldError(instance)
 
         else:
