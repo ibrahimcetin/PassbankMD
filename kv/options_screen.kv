@@ -66,7 +66,7 @@
                     on_press: root.listSubtitlesButton()
 
 
-<TwoLineListItemWithSwitch>:
+<TwoLineListItemWithContainer>:
     BoxLayout:
         id: _right_container
         size_hint: None, None
@@ -107,7 +107,7 @@
                 color: 1,0,0,1
 
             MDList:
-                TwoLineListItemWithSwitch:
+                TwoLineListItemWithContainer:
                     text: "Auto Backup"
                     secondary_text: "Create auto backups on your storage"
                     on_press: switch.trigger_action(duration=0)
@@ -122,3 +122,115 @@
                     disabled: not switch.active
                     on_press: root.autoBackupLocationFunction()
 
+
+<OneLineListItemWithContainer>:
+    BoxLayout:
+        id: _right_container
+        size_hint: None, None
+        x: root.x + root.width - m_res.HORIZ_MARGINS - self.width
+        y: root.y + root.height/2 - self.height/2
+        size: dp(48), dp(48)
+
+<SecurityOptionsScreen>:
+    MDToolbar:
+        title: "Security"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    ScrollView:
+        y: -app.theme_cls.standard_increment
+
+        MDGridLayout:
+            cols: 1
+            adaptive_height: True
+            padding: [dp(50), dp(25)]
+
+            MDLabel:
+                text: "SECURITY"
+                font_style: "Button"
+                color: 1,0,0,1
+
+            MDList:
+                OneLineListItem:
+                    text: "Change Master Password"
+                    on_press: root.changeMasterPasswordButton()
+
+                OneLineListItemWithContainer:
+                    text: "Fast Login"
+                    on_press: fast_login_switch.trigger_action(duration=0)
+
+                    RightSwitch:
+                        id: fast_login_switch
+                        on_active: root.fastLoginFunction(self.active)
+
+                OneLineListItemWithContainer:
+                    text: "Auto Exit"
+                    on_press: auto_exit_switch.trigger_action(duration=0)
+
+                    RightSwitch:
+                        id: auto_exit_switch
+                        on_active: root.autoExitFunction(self.active)
+
+<ChangeMasterPasswordScreen>:
+    MDToolbar:
+        title: "Change Master Password"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    MDBoxLayout:
+        padding: dp(10)
+        spacing: dp(10)
+        orientation: "vertical"
+        pos_hint: {"center_x": .5, "center_y": .5}
+        adaptive_height: True
+        size_hint_x: .7
+
+        MDLabel:
+            text: "Change Master Password"
+            halign: "center"
+            font_style: "Button"
+
+        MDBoxLayout:
+            adaptive_height: True
+
+            MDTextField:
+                id: current_password_field
+                hint_text: "Current Password"
+                password: True
+                write_tab: False
+
+                on_text: root.checkField(self, self.text)
+                helper_text: "Password not correct"
+                helper_text_mode: "on_error"
+
+            MDIconButton:
+                id: show_password_button
+                icon: "eye-outline"
+                on_press: root.showPasswordBtn()
+
+        MDTextField:
+            id: new_password_field
+            hint_text: "New Password"
+            password: True
+            write_tab: False
+
+            on_text: root.checkField(self, self.text)
+            helper_text: "Passwords not match"
+            helper_text_mode: "on_error"
+
+        MDTextField:
+            id: confirm_new_password_field
+            hint_text: "Confirm New Password"
+            password: True
+            write_tab: False
+
+            helper_text: "Passwords not match"
+            helper_text_mode: "on_error"
+            on_text: root.checkConfirmField(self, self.text)
+
+        MDRaisedButton:
+            text: "Update"
+            pos_hint: {"center_x": .5}
+            on_press: root.updateButton(current_password_field.text, new_password_field.text, confirm_new_password_field.text)

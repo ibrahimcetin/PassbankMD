@@ -5,13 +5,15 @@ from functools import partial
 from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
+from kivy.animation import Animation
 
-from kivymd.uix.list import OneLineIconListItem, TwoLineListItem, OneLineAvatarIconListItem, ILeftBodyTouch, IRightBodyTouch, ContainerSupport
+from kivymd.uix.list import OneLineIconListItem, OneLineListItem, TwoLineListItem, OneLineAvatarIconListItem, ILeftBodyTouch, IRightBodyTouch, ContainerSupport
 from kivymd.uix.selectioncontrol import MDCheckbox, MDSwitch
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from .filemanager import MDFileManager
 from kivymd.toast import toast
+from kivymd.theming import ThemeManager
 
 
 class CustomOneLineIconListItem(OneLineIconListItem):
@@ -29,9 +31,6 @@ class OptionsScreen(Screen):
         for text, icon in data:
             self.ids.container.add_widget(CustomOneLineIconListItem(text=text, icon=icon, on_press=self.optionBtn))
 
-    def goBackBtn(self):
-        self.manager.setMainScreen()
-
     def optionBtn(self, button):
         text = button.text
 
@@ -40,6 +39,12 @@ class OptionsScreen(Screen):
 
         elif text == "Database":
             self.manager.setDatabaseOptionsScreen()
+
+        elif text == "Security":
+            self.manager.setSecurityOptionsScreen()
+
+    def goBackBtn(self):
+        self.manager.setMainScreen()
 
 
 class SortSelectionItem(OneLineAvatarIconListItem):
@@ -75,6 +80,8 @@ class AppearanceOptionsScreen(Screen):
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
 
+        self.theme_cls = ThemeManager()
+
         self.getOptions()
 
     def getOptions(self):
@@ -102,7 +109,7 @@ class AppearanceOptionsScreen(Screen):
             items=items,
             buttons=[
                 MDFlatButton(
-                    text="Cancel", on_press=self.closeDialog
+                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
                 ),
             ],
         )
@@ -128,7 +135,7 @@ class AppearanceOptionsScreen(Screen):
             ],
             buttons=[
                 MDFlatButton(
-                    text="Cancel", on_press=self.closeDialog
+                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
                 ),
                 MDRaisedButton(
                     text="Ok", on_press=self.getChecked
@@ -159,14 +166,14 @@ class AppearanceOptionsScreen(Screen):
 
         self.ids.list_subtitles_item.secondary_text = text
 
-    def goBackBtn(self):
-        self.manager.setOptionsScreen()
-
     def closeDialog(self, button=None):
         self.dialog.dismiss()
 
+    def goBackBtn(self):
+        self.manager.setOptionsScreen()
 
-class TwoLineListItemWithSwitch(ContainerSupport, TwoLineListItem):
+
+class TwoLineListItemWithContainer(ContainerSupport, TwoLineListItem):
     def start_ripple(self): # disable ripple behavior
         pass
 
@@ -202,9 +209,6 @@ class DatabaseOptionsScreen(Screen):
 
         for text, second in data:
             self.ids.database_container.add_widget(TwoLineListItem(text=text, secondary_text=second, on_press=self.checkPlatform))
-
-    def goBackBtn(self):
-        self.manager.setOptionsScreen()
 
     def checkPlatform(self, button):
         if platform == "android":
@@ -318,3 +322,175 @@ class DatabaseOptionsScreen(Screen):
     def exit_manager(self, *args):
         self.file_manager.close()
         self.manager.file_manager_open = False
+
+    def goBackBtn(self):
+        self.manager.setOptionsScreen()
+
+
+class OneLineListItemWithContainer(ContainerSupport, OneLineListItem):
+    def start_ripple(self): # disable ripple behavior
+        pass
+
+class SecurityOptionsScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
+
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+
+        self.theme_cls = ThemeManager()
+
+        self.getOptions()
+        self.setOptions()
+
+    def getOptions(self):
+        self.cursor.execute("SELECT fast_login, auto_exit FROM options")
+        options = self.cursor.fetchone()
+
+        self.fast_login = bool(options[0])
+        self.auto_exit = bool(options[1])
+
+    def setOptions(self):
+        self.ids.fast_login_switch.active = self.fast_login
+        self.ids.auto_exit_switch.active = self.auto_exit
+
+    def changeMasterPasswordButton(self):
+        self.dialog = MDDialog(
+            title="Change Master Password?",
+            text="By changing the master password you will not be able to restore database backups that were created with the current password.",
+            buttons=[
+                MDFlatButton(
+                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
+                ),
+                MDFlatButton(
+                    text="Accept", text_color=self.theme_cls.primary_color, on_press=self.changeMasterPasswordFunction
+                ),
+            ],
+        )
+        self.dialog.ids.text.text_color = [0,0,0]
+        self.dialog.open()
+
+    def changeMasterPasswordFunction(self, button):
+        self.manager.setChangeMasterPasswordScreen()
+        self.closeDialog(None)
+
+    def fastLoginFunction(self, active):
+        status = 1 if active else 0
+
+        self.cursor.execute("UPDATE options SET fast_login = ?", (status,))
+        self.con.commit()
+
+    def autoExitFunction(self, active):
+        status = 1 if active else 0
+
+        self.cursor.execute("UPDATE options SET auto_exit = ?", (status,))
+        self.con.commit()
+
+    def closeDialog(self, button):
+        self.dialog.dismiss()
+
+    def goBackBtn(self):
+        self.manager.setOptionsScreen()
+
+class ChangeMasterPasswordScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
+
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+        self.cipher = kwargs.get("cipher")
+
+        self.password = None
+        self.getPasswordFromDB()
+
+    def getPasswordFromDB(self):
+        self.cursor.execute("SELECT master_password FROM options")
+        encrypted = self.cursor.fetchone()[0]
+
+        self.password = self.cipher.decrypt(encrypted)
+
+    def updateButton(self, current_password, new_password, confirm_new_password):
+        if current_password == self.password:
+            if self.password == new_password == confirm_new_password:
+                toast("Current password and new password cannot be same!")
+
+            elif new_password == confirm_new_password:
+                encrypted = self.cipher.encrypt(new_password)
+
+                self.cursor.execute("UPDATE options SET master_password = ?", (encrypted,))
+                self.con.commit()
+
+                toast("Master Password Successfully Changed")
+                self.manager.setSecurityOptionsScreen()
+
+            else:
+                instance = self.ids.confirm_new_password_field
+                self.initFieldError(instance)
+
+        else:
+            instance = self.ids.current_password_field
+            self.initFieldError(instance)
+
+    def showPasswordBtn(self):
+        button = self.ids.show_password_button
+        field_1 = self.ids.current_password_field
+        field_2 = self.ids.new_password_field
+        field_3 = self.ids.confirm_new_password_field
+
+        if button.icon == "eye-outline":
+            field_1.password = False
+            field_2.password = False
+            field_3.password = False
+            button.icon = "eye-off-outline"
+
+        elif button.icon == "eye-off-outline":
+            field_1.password = True
+            field_2.password = True
+            field_3.password = True
+            button.icon = "eye-outline"
+
+    def checkField(self, instance, text):
+        if not text:
+            return
+
+        else:
+            self.closeFieldError(instance)
+
+    def checkConfirmField(self, instance, text):
+        if not text:
+            return
+
+        if text != instance.text:
+            self.initFieldError(instance)
+
+        else:
+            self.closeFieldError(instance)
+
+    def goBackBtn(self):
+        self.manager.setSecurityOptionsScreen()
+
+    def initFieldError(self, instance):
+        instance.error = True
+
+        Animation(
+            duration=0.2, _current_error_color=instance.error_color
+        ).start(instance)
+        Animation(
+            _current_right_lbl_color=instance.error_color,
+            _current_hint_text_color=instance.error_color,
+            _current_line_color=instance.error_color,
+            _line_width=instance.width, duration=0.2, t="out_quad"
+        ).start(instance)
+
+    def closeFieldError(self, instance):
+        Animation(
+            duration=0.2, _current_error_color=(0, 0, 0, 0)
+        ).start(instance)
+        Animation(
+            duration=0.2,
+            _current_line_color=instance.line_color_focus,
+            _current_hint_text_color=instance.line_color_focus,
+            _current_right_lbl_color=instance.line_color_focus,
+        ).start(instance)
+
+        instance.error = False

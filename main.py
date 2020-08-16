@@ -17,13 +17,16 @@ class Passbank(MDApp):
     """
 
     def on_pause(self):
-        self.manager.transition = NoTransition()
+        self.getOptions()
 
-        try:
-            self.manager.main_screen.bottom_sheet.dismiss()
-            self.manager.main_screen.bottom_sheet.screen.dialog.dismiss()
-        except:
-            pass
+        if self.auto_exit:
+            self.manager.transition = NoTransition()
+
+            try:
+                self.manager.main_screen.bottom_sheet.dismiss()
+                self.manager.main_screen.bottom_sheet.screen.dialog.dismiss()
+            except:
+                pass
 
         return True
 
@@ -31,13 +34,18 @@ class Passbank(MDApp):
         # I used on_resume method instead of on_pause method when change screen to login screen
         # beacuse on_pause method not working well.
 
-        try:
-            if self.manager.current_screen.name == "main_screen":
-                self.manager.setLoginScreen()
-        except:
-            pass
+        if self.auto_exit:
+            try:
+                if self.manager.current_screen.name == "main_screen":
+                    self.manager.setLoginScreen()
+            except:
+                pass
 
-        self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+
+    def getOptions(self):
+        self.manager.cursor.execute("SELECT auto_exit FROM options")
+        self.auto_exit = bool(self.manager.cursor.fetchone()[0])
 
 
 Passbank().run()
