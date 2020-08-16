@@ -1,3 +1,5 @@
+#:import Window kivy.core.window.Window
+
 <RVOneLineIconListItem>
     IconLeftWidget:
         icon: root.icon
@@ -17,24 +19,24 @@
 <ContentCustomBottomSheet>:
     orientation: "vertical"
     size_hint_y: None
-    height: dp(400)
+    height: Window.height/2
 
     MDToolbar:
-        id: sheet_toolbar
+        id: toolbar
         elevation: 10
         pos_hint: {"top": 1}
-        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPasswordBtn()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount()]]
+        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPassword()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
 
     MDBoxLayout:
+        orientation: "vertical"
         adaptive_height: True
+        size_hint_x: .7
+        pos_hint: {"center_x": .5, "center_y": .5}
         padding: dp(10)
         spacing: dp(10)
-        orientation: "vertical"
-        pos_hint: {"center_x": .5, "center_y": .5}
-        size_hint_x: .7
 
         MDTextField:
-            id: sheet_site_input
+            id: site_field
             hint_text: "Site"
             write_tab: False
 
@@ -42,12 +44,12 @@
             on_text: root.checkSiteField(self, self.text)
 
         MDTextField:
-            id: sheet_email_input
+            id: email_field
             hint_text: "EMail"
             write_tab: False
 
         MDTextField:
-            id: sheet_username_input
+            id: username_field
             hint_text: "Username"
             write_tab: False
 
@@ -57,18 +59,18 @@
             adaptive_height: True
 
             MDTextField:
-                id: sheet_pass_input
+                id: new_password_field
                 hint_text: "Password"
                 password: True
                 write_tab: False
 
             MDIconButton:
-                id: sheet_show_new_password_btn
+                id: show_new_password_button
                 icon: "eye-outline"
-                on_press: root.showNewPasswordBtn()
+                on_press: root.showNewPasswordButton(self, new_password_field, confirm_new_password_field)
 
         MDTextField:
-            id: sheet_confirm_pass_input
+            id: confirm_new_password_field
             hint_text: "New Password Confirm"
             password: True
             write_tab: False
@@ -85,8 +87,8 @@
 <MainScreen>
     MDBoxLayout:
         orientation: 'vertical'
-        spacing: dp(10)
         padding: [0, dp(10)]
+        spacing: dp(10)
 
         MDBoxLayout:
             size_hint_y: None
@@ -105,18 +107,18 @@
                 on_press: root.manager.setOptionsScreen()
 
         RecycleView:
-            id: rv
+            id: recycle_view
             key_viewclass: 'viewclass'
             key_size: 'height'
 
             RecycleBoxLayout:
+                orientation: 'vertical'
                 default_size: None, None
                 default_size_hint: 1, None
                 size_hint_y: None
                 height: self.minimum_height
-                orientation: 'vertical'
 
     MDFloatingActionButtonSpeedDial:
-        data: root.btn_data
+        data: root.button_data
         rotation_root_button: True
-        callback: root.actionBtn
+        callback: root.actionButton

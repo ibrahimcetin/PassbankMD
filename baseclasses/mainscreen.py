@@ -63,10 +63,10 @@ class ContentCustomBottomSheet(MDBoxLayout):
         if self.username == " ":
             self.username = ""
 
-        self.ids.sheet_toolbar.title = self.site
-        self.ids.sheet_site_input.text = self.site
-        self.ids.sheet_email_input.text = self.email
-        self.ids.sheet_username_input.text = self.username
+        self.ids.toolbar.title = self.site
+        self.ids.site_field.text = self.site
+        self.ids.email_field.text = self.email
+        self.ids.username_field.text = self.username
 
         self.auto_backup = kwargs.get("auto_backup")
         self.auto_backup_location = kwargs.get("auto_backup_location")
@@ -78,20 +78,21 @@ class ContentCustomBottomSheet(MDBoxLayout):
         password = self.cipher.decrypt(encrypted)
         Clipboard.copy(password)
 
-        toast(f"{self.site} password copied")
+        toast(f"{self.site} Password Copied")
 
-    def updateAccount(self):
-        new_site = self.ids.sheet_site_input.text
-        new_email = self.ids.sheet_email_input.text
-        new_username = self.ids.sheet_username_input.text
+    def updateAccount(self, site_field, confirm_new_password_field):
+        new_site = site_field.text
+        new_email = self.ids.email_field.text
+        new_username = self.ids.username_field.text
 
-        new_password = self.ids.sheet_pass_input.text
-        confirm_new_password = self.ids.sheet_confirm_pass_input.text
+        new_password = self.ids.new_password_field.text
+        confirm_new_password = confirm_new_password_field.text
+
+        changed = []
 
         ### Update Site
         if not new_site:
-            instance = self.ids.sheet_site_input
-            self.initFieldError(instance)
+            self.initFieldError(site_field)
 
         elif new_site == self.site:
             pass
@@ -102,7 +103,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.site = new_site
 
-            toast(f"{self.site} Successfully Changed")
+            changed.append("Site")
         ###
 
         if not (new_email == self.email):
@@ -111,7 +112,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.email = new_email
 
-            toast("Email Successfully Changed")
+            changed.append("Email")
 
         if not (new_username == self.username):
             self.cursor.execute("UPDATE accounts SET username=? WHERE site=? AND email=?",(new_username, self.site, self.email))
@@ -119,7 +120,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.username = new_username
 
-            toast("Username Successfully Changed")
+            changed.append("Username")
 
         if new_password:
             if new_password == confirm_new_password:
@@ -128,11 +129,16 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 self.cursor.execute("UPDATE accounts SET password=? WHERE site=? AND email=?",(encrypted, self.site, self.email))
                 self.con.commit()
 
-                toast("Password Successfully Changed")
+                #TODO clear new password fields after password changed
+
+                changed.append("Password")
 
             else:
-                instance = self.ids.sheet_confirm_pass_input
-                self.initFieldError(instance)
+                self.initFieldError(confirm_new_password_field)
+
+        if len(changed) > 0:
+            output = ", ".join(changed)
+            toast(f"{output} Successfully Changed")
 
         if self.auto_backup: # auto backup
             shutil.copy2("pass.db", self.auto_backup_location)
@@ -159,7 +165,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", (self.site, self.email))
         self.con.commit()
 
-        toast(f"{self.site} successfully deleted")
+        toast(f"{self.site} Successfully Deleted")
 
         self.dialog.dismiss()
         self.main_screen.bottom_sheet.dismiss()
@@ -169,7 +175,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         self.main_screen.initUI() # refresh main screen
 
-    def showPasswordBtn(self):
+    def showPassword(self):
         self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
         encrypted = self.cursor.fetchall()[0][0]
 
@@ -186,22 +192,15 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.ids.text.text_color = [0,0,0]
         self.dialog.open()
 
-    def closeDialog(self, button):
-        self.dialog.dismiss()
-
-    def showNewPasswordBtn(self):
-        button = self.ids.sheet_show_new_password_btn
-        input_1 = self.ids.sheet_pass_input
-        input_2 = self.ids.sheet_confirm_pass_input
-
+    def showNewPasswordButton(self, button, field_1, field_2):
         if button.icon == "eye-outline":
-            input_1.password = False
-            input_2.password = False
+            field_1.password = False
+            field_2.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input_1.password = True
-            input_2.password = True
+            field_1.password = True
+            field_2.password = True
             button.icon = "eye-outline"
 
     def checkSiteField(self, instance, text):
@@ -215,11 +214,14 @@ class ContentCustomBottomSheet(MDBoxLayout):
         if not text:
             return
 
-        if text != self.ids.sheet_pass_input.text:
+        if text != self.ids.new_password_field.text:
             self.initFieldError(instance)
 
         else:
             self.closeFieldError(instance)
+
+    def closeDialog(self, button):
+        self.dialog.dismiss()
 
     def initFieldError(self, instance):
         instance.error = True
@@ -249,7 +251,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
 
 class MainScreen(Screen):
-    btn_data = {
+    button_data = {
             "key": "Suggest Password",
             'account-plus': 'Add Account',
             "clipboard": "Clear Clipboard"
@@ -299,7 +301,7 @@ class MainScreen(Screen):
         if search_text:
             search = True
 
-        def addAccountsToRecycleView(site, email, username):
+        def add_accounts_to_recycle_view(site, email, username):
             # Set icon
             icon = "-".join(site.lower().split())
 
@@ -342,11 +344,11 @@ class MainScreen(Screen):
                 base["viewclass"] = "RVOneLineIconListItem"
             ###
 
-            self.ids.rv.data.append(
+            self.ids.recycle_view.data.append(
                 base
             )
 
-        self.ids.rv.data = []
+        self.ids.recycle_view.data = []
         for account in self.accounts:
             site = account[0]
             email = account[1]
@@ -354,15 +356,15 @@ class MainScreen(Screen):
 
             if search:
                 if search_text.lower() in site.lower():
-                    addAccountsToRecycleView(site, email, username)
+                    add_accounts_to_recycle_view(site, email, username)
             else:
-                addAccountsToRecycleView(site, email, username)
+                add_accounts_to_recycle_view(site, email, username)
 
-    def actionBtn(self, button):
+    def actionButton(self, button):
         if button.icon == "key":
             password = "".join(random.sample(self.chars, 15))
             Clipboard.copy(password)
-            toast(f"{password} copied")
+            toast(f"{password} Copied")
 
         if button.icon == "clipboard":
             Clipboard.copy(" ")

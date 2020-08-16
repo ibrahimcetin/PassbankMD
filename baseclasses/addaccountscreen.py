@@ -16,25 +16,20 @@ class AddAccountScreen(Screen):
 
         self.getAutoBackupOptions()
 
-    def goBackBtn(self):
-        self.manager.setMainScreen()
+    def addAccountButton(self, site_field, password_field, confirm_password_field):
+        site = site_field.text
+        email = self.ids.email_field.text
+        username = self.ids.username_field.text
 
-    def addAccountBtn(self):
-        site = self.ids.add_acc_site_input.text
-        email = self.ids.add_acc_email_input.text
-        username = self.ids.add_acc_username_input.text
-
-        password = self.ids.add_acc_pass_input.text
-        confirm_password = self.ids.add_acc_conf_pass_input.text
+        password = password_field.text
+        confirm_password = confirm_password_field.text
 
         if password == confirm_password:
             if not site:
-                instance = self.ids.add_acc_site_input
-                self.initFieldError(instance)
+                self.initFieldError(site_field)
 
             elif not password:
-                instance = self.ids.add_acc_pass_input
-                self.initFieldError(instance)
+                self.initFieldError(password_field)
 
             else:
                 encrypted = self.cipher.encrypt(password)
@@ -50,8 +45,7 @@ class AddAccountScreen(Screen):
                 self.manager.setMainScreen() # refresh main screen
 
         else:
-            instance = self.ids.add_acc_conf_pass_input
-            self.initFieldError(instance)
+            self.initFieldError(confirm_password_field)
 
     def getAutoBackupOptions(self):
         self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
@@ -60,19 +54,15 @@ class AddAccountScreen(Screen):
         self.auto_backup = True if options[0] == 1 else False
         self.auto_backup_location = options[1]
 
-    def showPasswordBtn(self):
-        button = self.ids.add_acc_show_password_btn
-        input_1 = self.ids.add_acc_pass_input
-        input_2 = self.ids.add_acc_conf_pass_input
-
+    def showPasswordBtn(self, button, field_1, field_2):
         if button.icon == "eye-outline":
-            input_1.password = False
-            input_2.password = False
+            field_1.password = False
+            field_2.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input_1.password = True
-            input_2.password = True
+            field_1.password = True
+            field_2.password = True
             button.icon = "eye-outline"
 
     def checkField(self, instance, text):
@@ -86,11 +76,14 @@ class AddAccountScreen(Screen):
         if not text:
             return
 
-        if text != self.ids.add_acc_pass_input.text:
+        if text != self.ids.password_field.text:
             self.initFieldError(instance)
 
         else:
             self.closeFieldError(instance)
+
+    def goBackBtn(self):
+        self.manager.setMainScreen()
 
     def initFieldError(self, instance):
         instance.error = True

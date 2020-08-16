@@ -17,22 +17,19 @@ class LoginScreen(Screen):
         self.master_password = self.cipher.decrypt(options[0])
         self.fast_login = options[1]
 
-    def loginBtn(self):
-        instance = self.ids.login_pass_input
+    def loginButton(self, password_field):
+        if not password_field.text:
+            password_field.helper_text = "Please enter password"
+            self.initFieldError(password_field)
 
-        if not self.ids.login_pass_input.text:
-            self.initFieldError(instance)
-
-        elif self.master_password == self.ids.login_pass_input.text:
+        elif self.master_password == password_field.text:
             self.manager.setMainScreen()
 
         else:
-            self.initFieldError(instance)
+            password_field.helper_text = "Password not correct"
+            self.initFieldError(password_field)
 
-    def showPasswordBtn(self):
-        button = self.ids.login_show_password_btn
-        field = self.ids.login_pass_input
-
+    def showPasswordButton(self, button, field):
         if button.icon == "eye-outline":
             field.password = False
             button.icon = "eye-off-outline"
@@ -41,22 +38,19 @@ class LoginScreen(Screen):
             field.password = True
             button.icon = "eye-outline"
 
-    def checkPassword(self, instance, text): # Works after pressing enter
-        if text == self.master_password:
-            self.loginBtn()
-
-        else:
-            self.initFieldError(instance)
-
     def fastLogin(self, instance, text):
-        if (not text) or (self.fast_login == 0):
+        if not text:
             return
 
         else:
             self.closeFieldError(instance)
 
-            if text == self.master_password:
-                self.loginBtn()
+            if (text == self.master_password) and (self.fast_login == 1):
+                self.fastLoginFunction(instance)
+
+    def fastLoginFunction(self, password_field):
+        if self.master_password == password_field.text:
+            self.manager.setMainScreen()
 
     def initFieldError(self, instance):
         instance.error = True

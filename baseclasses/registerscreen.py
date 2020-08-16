@@ -5,6 +5,7 @@ from kivy.animation import Animation
 from kivy.utils import platform
 
 from kivymd.toast import toast
+from kivymd.uix.snackbar import Snackbar
 
 
 class RegisterScreen(Screen):
@@ -17,16 +18,12 @@ class RegisterScreen(Screen):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
-    def registerBtn(self):
-        password_field = self.ids.reg_pass_input
-        confirm_password_field = self.ids.reg_confirm_pass_input
-
+    def registerButton(self, password_field, confirm_password_field):
         if not password_field.text:
             self.initFieldError(password_field)
 
         elif password_field.text == confirm_password_field.text:
-            self.manager.password = password_field.text
-            encrypted = self.cipher.encrypt(self.manager.password)
+            encrypted = self.cipher.encrypt(password_field.text)
 
             path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
 
@@ -35,22 +32,28 @@ class RegisterScreen(Screen):
 
             self.manager.setMainScreen()
 
+            self.snackbar = Snackbar(
+                text="Make sure that you Remember your Master Password",
+                padding="20dp",
+                button_text="GOT IT",
+                button_color=(1, 0, 1, 1),
+                duration=60,
+                button_callback=self.closeSnackbar
+            )
+            self.snackbar.show()
+
         else:
             self.initFieldError(confirm_password_field)
 
-    def showPasswordBtn(self):
-        button = self.ids.reg_show_password_btn
-        input_1 = self.ids.reg_pass_input
-        input_2 = self.ids.reg_confirm_pass_input
-
+    def showPasswordButton(self, button, field_1, field_2):
         if button.icon == "eye-outline":
-            input_1.password = False
-            input_2.password = False
+            field_1.password = False
+            field_2.password = False
             button.icon = "eye-off-outline"
 
         elif button.icon == "eye-off-outline":
-            input_1.password = True
-            input_2.password = True
+            field_1.password = True
+            field_2.password = True
             button.icon = "eye-outline"
 
     def checkPasswordField(self, instance, text):
@@ -64,11 +67,14 @@ class RegisterScreen(Screen):
         if not text:
             return
 
-        if text != self.ids.reg_pass_input.text:
+        if text != self.ids.password_field.text:
             self.initFieldError(instance)
 
         else:
             self.closeFieldError(instance)
+
+    def closeSnackbar(self, button):
+        self.snackbar.duration = 0
 
     def initFieldError(self, instance):
         instance.error = True

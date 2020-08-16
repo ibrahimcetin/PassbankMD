@@ -6,12 +6,12 @@
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
     MDBoxLayout:
-        padding: dp(10)
-        spacing: dp(10)
         orientation: "vertical"
-        pos_hint: {"center_x": .5, "center_y": .5}
         adaptive_height: True
         size_hint_x: .7
+        pos_hint: {"center_x": .5, "center_y": .5}
+        padding: dp(10)
+        spacing: dp(10)
 
         MDLabel:
             text: "Add New Account"
@@ -19,7 +19,7 @@
             font_style: "Button"
 
         MDTextField:
-            id: add_acc_site_input
+            id: site_field
             hint_text: "Site"
             write_tab: False
 
@@ -27,12 +27,12 @@
             on_text: root.checkField(self, self.text)
 
         MDTextField:
-            id: add_acc_email_input
+            id: email_field
             hint_text: "EMail"
             write_tab: False
 
         MDTextField:
-            id: add_acc_username_input
+            id: username_field
             hint_text: "Username"
             write_tab: False
 
@@ -40,7 +40,7 @@
             adaptive_height: True
 
             MDTextField:
-                id: add_acc_pass_input
+                id: password_field
                 hint_text: "Password"
                 password: True
                 write_tab: False
@@ -49,12 +49,12 @@
                 on_text: root.checkField(self, self.text)
 
             MDIconButton:
-                id: add_acc_show_password_btn
+                id: show_password_button
                 icon: "eye-outline"
-                on_press: root.showPasswordBtn()
+                on_press: root.showPasswordBtn(self, password_field, confirm_password_field)
 
         MDTextField:
-            id: add_acc_conf_pass_input
+            id: confirm_password_field
             hint_text: "Confirm Password"
             password: True
             write_tab: False
@@ -62,8 +62,9 @@
             helper_text: "Passwords not match"
             helper_text_mode: "on_error"
             on_text: root.checkConfirmField(self, self.text)
+            on_text_validate: root.addAccountButton(site_field, password_field, confirm_password_field)
 
         MDRaisedButton:
             text: "Add Account"
             pos_hint: {"center_x": .5}
-            on_press: root.addAccountBtn()
+            on_press: root.addAccountButton(site_field, password_field, confirm_password_field)

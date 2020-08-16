@@ -5,12 +5,12 @@
         pos_hint: {"top": 1}
 
     MDBoxLayout:
-        padding: dp(10)
-        spacing: dp(10)
         orientation: "vertical"
-        pos_hint: {"center_x": .5, "center_y": .5}
         adaptive_height: True
         size_hint_x: .7
+        pos_hint: {"center_x": .5, "center_y": .5}
+        padding: dp(10)
+        spacing: dp(10)
 
         MDLabel:
             text: "Welcome to Passbank"
@@ -23,7 +23,7 @@
             adaptive_height: True
 
             MDTextField:
-                id: reg_pass_input
+                id: password_field
                 hint_text: "Password"
                 password: True
                 write_tab: False
@@ -32,12 +32,12 @@
                 on_text: root.checkPasswordField(self, self.text)
 
             MDIconButton:
-                id: reg_show_password_btn
+                id: show_password_button
                 icon: "eye-outline"
-                on_press: root.showPasswordBtn()
+                on_press: root.showPasswordBtn(self, password_field, confirm_password_field)
 
         MDTextField:
-            id: reg_confirm_pass_input
+            id: confirm_password_field
             hint_text: "Confirm Password"
             password: True
             write_tab: False
@@ -49,4 +49,4 @@
         MDRaisedButton:
             text: "Register"
             pos_hint: {"center_x": .5}
-            on_press: root.registerBtn()
+            on_press: root.registerButton(password_field, confirm_password_field)
