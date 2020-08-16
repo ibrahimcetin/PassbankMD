@@ -305,9 +305,6 @@ class MainScreen(Screen):
             # Set icon
             icon = "-".join(site.lower().split())
 
-            if icon == "github":
-                icon = "github-circle"
-
             if icon not in md_icons.keys():
                 icon = "account-circle-outline"
             ###
