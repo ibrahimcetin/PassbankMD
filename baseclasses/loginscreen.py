@@ -42,7 +42,7 @@ class LoginScreen(Screen):
             button.icon = "eye-outline"
 
     def checkPassword(self, instance, text): # Works after pressing enter
-        if text == self.password:
+        if text == self.master_password:
             self.loginBtn()
 
         else:
