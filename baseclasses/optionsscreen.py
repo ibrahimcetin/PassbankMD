@@ -43,6 +43,9 @@ class OptionsScreen(Screen):
         elif text == "Security":
             self.manager.setSecurityOptionsScreen()
 
+        elif text == "About":
+            toast("Created by Ibrahim Cetin")
+
     def goBackBtn(self):
         self.manager.setMainScreen()
 
