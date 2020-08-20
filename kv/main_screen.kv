@@ -1,5 +1,3 @@
-#:import Window kivy.core.window.Window
-
 <RVOneLineIconListItem>
     IconLeftWidget:
         icon: root.icon
@@ -19,7 +17,7 @@
 <ContentCustomBottomSheet>:
     orientation: "vertical"
     size_hint_y: None
-    height: Window.height/2
+    height: box_layout.height + toolbar.height
 
     MDToolbar:
         id: toolbar
@@ -28,6 +26,7 @@
         right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["eye-outline", lambda button: root.showPassword()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
 
     MDBoxLayout:
+        id: box_layout
         orientation: "vertical"
         adaptive_height: True
         size_hint_x: .7

@@ -37,10 +37,33 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
 
         return super().on_open()
 
+    def on_pre_dismiss(self):
+        if self.animation:
+            Animation(height=0, d=self.duration_opening).start(self.layout)
+            Animation(height=0, d=self.duration_opening).start(self.content)
+
     def on_dismiss(self):
         Window.softinput_mode = ""
 
         return super().on_dismiss()
+
+    def resize_content_layout(self, content, _layout, interval=0):
+        if not _layout.ids.get("box_sheet_list"):
+            layout = _layout
+        else:
+            layout = _layout.ids.box_sheet_list
+
+        height = layout.height
+
+        if self.animation:
+            self.content = content
+            self.layout = layout
+
+            Animation(height=height, d=self.duration_opening).start(self.layout)
+            Animation(height=height, d=self.duration_opening).start(self.content)
+        else:
+            layout.height = height
+            content.height = height
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
