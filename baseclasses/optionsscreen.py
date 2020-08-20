@@ -11,7 +11,7 @@ from kivymd.uix.list import OneLineIconListItem, OneLineListItem, TwoLineListIte
 from kivymd.uix.selectioncontrol import MDCheckbox, MDSwitch
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
-from .filemanager import MDFileManager
+from kivymd.uix.filemanager import MDFileManager
 from kivymd.toast import toast
 from kivymd.theming import ThemeManager
 
