@@ -29,9 +29,6 @@ class RVThreeLineIconListItem(ThreeLineIconListItem):
 
 
 class MyMDCustomBottomSheet(MDCustomBottomSheet):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def on_open(self):
         Window.softinput_mode = "pan"
 
@@ -207,7 +204,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog = MDDialog(
             title=f"{self.site} Password",
             size_hint=(0.8, 0.22),
-            text=f"\n[b]{password}[/b]",
+            text=f"\n[font=fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
             buttons=[
                 MDRaisedButton(text="Close", on_press=self.closeDialog)
             ]
