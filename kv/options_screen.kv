@@ -14,6 +14,7 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
+        do_scroll_y: False
 
         MDList:
             id: container
@@ -43,11 +44,13 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
+        do_scroll_x: False
+        do_scroll_y: False
 
         MDGridLayout:
             cols: 1
             adaptive_height: True
-            padding: [dp(50), dp(25)]
+            padding: [dp(20), dp(25)]
 
             MDLabel:
                 text: "APPEARANCE"
@@ -83,11 +86,13 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
+        do_scroll_x: False
+        do_scroll_y: False
 
         MDGridLayout:
             cols: 1
             adaptive_height: True
-            padding: [dp(50), dp(25)]
+            padding: [dp(20), dp(25)]
 
             MDLabel:
                 text: "DATABASE"
@@ -140,11 +145,13 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
+        do_scroll_x: False
+        do_scroll_y: False
 
         MDGridLayout:
             cols: 1
             adaptive_height: True
-            padding: [dp(50), dp(25)]
+            padding: [dp(20), dp(25)]
 
             MDLabel:
                 text: "SECURITY"
@@ -245,11 +252,13 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
+        do_scroll_x: False
+        do_scroll_y: False
 
         MDGridLayout:
             cols: 1
             adaptive_height: True
-            padding: [dp(50), dp(25)]
+            padding: [dp(20), dp(25)]
 
             MDLabel:
                 text: "PASSWORD SUGGESTION"
