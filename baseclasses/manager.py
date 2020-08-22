@@ -44,16 +44,16 @@ class Manager(ScreenManager):
                 self.setMainScreen()
                 return True # do not exit the app
 
+            elif self.file_manager_open == True:
+                self.database_options_screen.file_manager.back()
+                return True
+
             elif self.current_screen.name in self.options_screen_names:
                 self.setOptionsScreen()
                 return True
 
             elif self.current_screen.name == "change_master_password_screen":
                 self.setSecurityOptionsScreen()
-                return True
-
-            if self.file_manager_open == True:
-                self.database_options_screen.file_manager.back()
                 return True
 
     def connectDatabase(self):
