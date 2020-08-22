@@ -266,6 +266,7 @@ class DatabaseOptionsScreen(Screen):
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager,
             select_path=self.auto_backup_location_select_path,
+            search="dirs"
         )
 
         self.file_manager.show(self.file_manager_start_path)
@@ -295,6 +296,7 @@ class DatabaseOptionsScreen(Screen):
             self.file_manager = MDFileManager(
                 exit_manager=self.exit_manager,
                 select_path=self.backup_select_path,
+                search="dirs"
             )
 
             self.file_manager.show(self.file_manager_start_path)
