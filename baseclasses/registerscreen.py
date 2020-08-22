@@ -27,7 +27,7 @@ class RegisterScreen(Screen):
 
             path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
 
-            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?,?)", (encrypted, "a_to_z", "1,1", 0, path, 1, 1))
+            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?)", (encrypted, "a_to_z", "1,1", 0, path, 1, 1, 15, "1,1,1,1"))
             self.con.commit()
 
             self.manager.setMainScreen()

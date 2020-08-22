@@ -284,12 +284,10 @@ class MainScreen(Screen):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
-        self.chars = string.ascii_letters + string.digits + string.punctuation
-
         self.initUI()
 
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles, auto_backup, auto_backup_location FROM options")
+        self.cursor.execute("SELECT sort_by, list_subtitles, auto_backup, auto_backup_location, password_length, password_suggestion_options FROM options")
         options = self.cursor.fetchall()[0]
 
         self.sort_by = options[0]
@@ -297,6 +295,9 @@ class MainScreen(Screen):
 
         self.auto_backup = True if options[2] == 1 else False
         self.auto_backup_location = options[3]
+
+        self.password_length = options[4]
+        self.password_suggestion_options = [bool(int(o)) for o in options[5].split(',')]
 
     def getAccounts(self):
         if self.sort_by == "a_to_z":
@@ -379,7 +380,20 @@ class MainScreen(Screen):
 
     def actionButton(self, button):
         if button.icon == "key":
-            password = "".join(random.sample(self.chars, 15))
+            options = self.password_suggestion_options
+
+            chars = ""
+
+            if options[0]:
+                chars += string.ascii_lowercase
+            if options[1]:
+                chars += string.ascii_uppercase
+            if options[2]:
+                chars += string.digits
+            if options[3]:
+                chars += string.punctuation
+
+            password = "".join(random.choices(chars, k=self.password_length))
             Clipboard.copy(password)
             toast(f"{password} Copied")
 

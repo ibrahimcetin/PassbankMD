@@ -1,11 +1,14 @@
 import os
 import shutil
+import string
+import random
 from functools import partial
 
 from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
 from kivy.animation import Animation
+from kivy.core.clipboard import Clipboard
 
 from kivymd.uix.list import OneLineIconListItem, OneLineListItem, TwoLineListItem, OneLineAvatarIconListItem, ILeftBodyTouch, IRightBodyTouch, ContainerSupport
 from kivymd.uix.selectioncontrol import MDCheckbox, MDSwitch
@@ -26,7 +29,7 @@ class OptionsScreen(Screen):
         self.initUI()
 
     def initUI(self):
-        data = [("Appearance", "format-paint"), ("Database", "database"), ("Security", "security"), ("About", "information-outline")]
+        data = [("Appearance", "format-paint"), ("Database", "database"), ("Security", "security"), ("Password Suggestion", "key"), ("About", "information-outline")]
 
         for text, icon in data:
             self.ids.container.add_widget(CustomOneLineIconListItem(text=text, icon=icon, on_press=self.optionBtn))
@@ -42,6 +45,9 @@ class OptionsScreen(Screen):
 
         elif text == "Security":
             self.manager.setSecurityOptionsScreen()
+
+        elif text == "Password Suggestion":
+            self.manager.setPasswordSuggestionOptionsScreen()
 
         elif text == "About":
             toast("Created by Ibrahim Cetin")
@@ -497,3 +503,79 @@ class ChangeMasterPasswordScreen(Screen):
         ).start(instance)
 
         instance.error = False
+
+
+class RightCheckbox(IRightBodyTouch, MDCheckbox):
+    pass
+
+class PasswordSuggestionOptionsScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(name=kwargs.get("name"))
+
+        self.con = kwargs.get("con")
+        self.cursor = kwargs.get("cursor")
+
+        self.getOptions()
+        self.setOptions()
+
+    def getOptions(self):
+        self.cursor.execute("SELECT password_length, password_suggestion_options FROM options")
+        options = self.cursor.fetchone()
+
+        self.password_length = options[0]
+        self.password_suggestion_options = [bool(int(o)) for o in options[1].split(',')]
+
+    def setOptions(self):
+        self.ids.slider.value = self.password_length
+
+        self.ids.lowercase_checkbox.active = self.password_suggestion_options[0]
+        self.ids.uppercase_checkbox.active = self.password_suggestion_options[1]
+        self.ids.digits_checkbox.active = self.password_suggestion_options[2]
+        self.ids.symbols_checkbox.active = self.password_suggestion_options[3]
+
+    def sliderFunction(self, slider):
+        value = int(slider.value)
+
+        if value != self.password_length:
+            self.password_length = value
+            self.cursor.execute("UPDATE options SET password_length = ?", (value,))
+            self.con.commit()
+
+    def checkboxFunction(self, checkbox):
+        checkbox_status = []
+
+        for widget in self.ids.values():
+            if isinstance(widget, RightCheckbox):
+                checkbox_status.append(widget.active)
+
+        if any(checkbox_status):
+            options = ",".join([str(int(i)) for i in checkbox_status])
+
+            self.cursor.execute("UPDATE options SET password_suggestion_options = ?", (options,))
+            self.con.commit()
+
+        else:
+            checkbox.active = True
+            toast("You must choose at least one!")
+
+    def suggestPasswordButton(self):
+        self.getOptions()
+        options = self.password_suggestion_options
+
+        chars = ""
+
+        if options[0]:
+            chars += string.ascii_lowercase
+        if options[1]:
+            chars += string.ascii_uppercase
+        if options[2]:
+            chars += string.digits
+        if options[3]:
+            chars += string.punctuation
+
+        password = "".join(random.choices(chars, k=self.password_length))
+        Clipboard.copy(password)
+        toast(f"{password} Copied")
+
+    def goBackBtn(self):
+        self.manager.setOptionsScreen()

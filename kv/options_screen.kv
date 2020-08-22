@@ -234,3 +234,104 @@
             text: "Update"
             pos_hint: {"center_x": .5}
             on_press: root.updateButton(current_password_field.text, new_password_field.text, confirm_new_password_field.text)
+
+
+<PasswordSuggestionOptionsScreen>:
+    MDToolbar:
+        title: "Password Suggestion"
+        elevation: 10
+        pos_hint: {"top": 1}
+        left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
+
+    ScrollView:
+        y: -app.theme_cls.standard_increment
+
+        MDGridLayout:
+            cols: 1
+            adaptive_height: True
+            padding: [dp(50), dp(25)]
+
+            MDLabel:
+                text: "PASSWORD SUGGESTION"
+                font_style: "Button"
+                color: 1,0,0,1
+
+            MDBoxLayout:
+                adaptive_height: True
+                height: self.minimum_height
+                padding: [dp(15), dp(15), dp(15), dp(0)]
+
+                MDLabel:
+                    size_hint_x: None
+                    width: 145
+                    text: "Password Length"
+
+                MDLabel:
+                    id: slider_label
+                    size_hint_x: None
+                    width: 20
+                    text: str(int(slider.value))
+
+                MDSlider:
+                    id: slider
+                    min: 8
+                    max: 99
+                    value: 15
+                    hint: False
+                    show_off: False
+                    on_touch_up: root.sliderFunction(self)
+
+                MDIconButton:
+                    icon: "minus"
+                    size: dp(40), dp(40)
+                    on_press: slider.value -= 1
+
+                MDIconButton:
+                    icon: "plus"
+                    size: dp(40), dp(40)
+                    on_press: slider.value += 1
+
+            MDList:
+                MDSeparator:
+
+                OneLineListItemWithContainer:
+                    text: "Lowercase Characters (a-z)"
+                    on_press: lowercase_checkbox.trigger_action(duration=0)
+
+                    RightCheckbox:
+                        id: lowercase_checkbox
+                        on_press: root.checkboxFunction(self)
+
+                OneLineListItemWithContainer:
+                    text: "Uppercase Characters (A-Z)"
+                    on_press: uppercase_checkbox.trigger_action(duration=0)
+
+                    RightCheckbox:
+                        id: uppercase_checkbox
+                        on_press: root.checkboxFunction(self)
+
+                OneLineListItemWithContainer:
+                    text: "Digits (0-9)"
+                    on_press: digits_checkbox.trigger_action(duration=0)
+
+                    RightCheckbox:
+                        id: digits_checkbox
+                        on_press: root.checkboxFunction(self)
+
+                OneLineListItemWithContainer:
+                    text: "Symbols ()"
+                    on_press: symbols_checkbox.trigger_action(duration=0)
+
+                    RightCheckbox:
+                        id: symbols_checkbox
+                        on_press: root.checkboxFunction(self)
+
+            Widget:
+                size_hint_y: None
+                height: dp(30)
+
+            MDRelativeLayout:
+                MDRaisedButton:
+                    text: "Suggest Password"
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    on_press: root.suggestPasswordButton()

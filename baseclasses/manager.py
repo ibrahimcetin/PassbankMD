@@ -9,7 +9,7 @@ from baseclasses.registerscreen import RegisterScreen
 from baseclasses.loginscreen import LoginScreen
 from baseclasses.mainscreen import MainScreen
 from baseclasses.addaccountscreen import AddAccountScreen
-from baseclasses.optionsscreen import OptionsScreen, AppearanceOptionsScreen, DatabaseOptionsScreen, SecurityOptionsScreen, ChangeMasterPasswordScreen
+from baseclasses.optionsscreen import OptionsScreen, AppearanceOptionsScreen, DatabaseOptionsScreen, SecurityOptionsScreen, ChangeMasterPasswordScreen, PasswordSuggestionOptionsScreen
 
 from pyaes import AESCipher
 
@@ -26,6 +26,13 @@ class Manager(ScreenManager):
         self.master_password_exists = None
         self.file_manager_open = None
 
+        self.options_screen_names = [
+            "appearance_options_screen",
+            "database_options_screen",
+            "security_options_screen",
+            "password_suggestion_options_screen"
+        ]
+
         self.setStartScreen()
 
     def on_key(self, window, key, *args):
@@ -37,7 +44,7 @@ class Manager(ScreenManager):
                 self.setMainScreen()
                 return True # do not exit the app
 
-            elif self.current_screen.name == "appearance_options_screen" or self.current_screen.name == "database_options_screen" or self.current_screen.name == "security_options_screen":
+            elif self.current_screen.name in self.options_screen_names:
                 self.setOptionsScreen()
                 return True
 
@@ -54,7 +61,7 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT, auto_exit INT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
 
     def getCipher(self):
         key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"
@@ -181,3 +188,12 @@ class Manager(ScreenManager):
         self.change_master_password_screen = ChangeMasterPasswordScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="change_master_password_screen")
         self.add_widget(self.change_master_password_screen)
         self.current = "change_master_password_screen"
+
+    def setPasswordSuggestionOptionsScreen(self):
+        if self.has_screen("password_suggestion_options_screen"):
+            self.current = "password_suggestion_options_screen"
+
+        else:
+            self.password_suggestion_options_screen = PasswordSuggestionOptionsScreen(con=self.con, cursor=self.cursor, name="password_suggestion_options_screen")
+            self.add_widget(self.password_suggestion_options_screen)
+            self.current = "password_suggestion_options_screen"
