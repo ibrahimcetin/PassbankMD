@@ -3,3 +3,4 @@ baseclasses/__pycache__/
 .buildozer/
 bin/
 pass.db
+.vscode/
