@@ -147,7 +147,7 @@ class AppearanceOptionsScreen(Screen):
                     text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
                 ),
                 MDRaisedButton(
-                    text="Ok", on_press=self.getChecked
+                    text="Okay", on_press=self.getChecked
                 ),
             ],
         )
@@ -196,8 +196,6 @@ class DatabaseOptionsScreen(Screen):
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
 
-        self.file_manager_start_path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
-
         self.getOptions()
         self.setOptions()
         self.initUI()
@@ -211,7 +209,9 @@ class DatabaseOptionsScreen(Screen):
 
     def setOptions(self):
         self.ids.switch.active = self.auto_backup
+
         self.ids.location_list_item.secondary_text = self.auto_backup_location
+        self.file_manager_start_path = self.auto_backup_location
 
     def initUI(self):
         data = [("Backup Database", "Backup encrypted database"), ("Restore Database", "Restore encrypted database")]
