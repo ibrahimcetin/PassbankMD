@@ -44,7 +44,6 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
-        do_scroll_x: False
         do_scroll_y: False
 
         MDGridLayout:
@@ -145,7 +144,6 @@
 
     ScrollView:
         y: -app.theme_cls.standard_increment
-        do_scroll_x: False
         do_scroll_y: False
 
         MDGridLayout:
@@ -331,7 +329,7 @@
                         on_press: root.checkboxFunction(self)
 
                 OneLineListItemWithContainer:
-                    text: "Symbols ()"
+                    text: "Symbols (!#$%&\'()* etc.)"
                     on_press: symbols_checkbox.trigger_action(duration=0)
 
                     RightCheckbox:
