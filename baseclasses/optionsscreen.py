@@ -5,7 +5,7 @@ import random
 from functools import partial
 
 from kivy.utils import platform
-from kivy.uix.screenmanager import Screen, FadeTransition, NoTransition
+from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 from kivy.core.clipboard import Clipboard
@@ -99,13 +99,12 @@ class AppearanceOptionsScreen(Screen):
         options = self.cursor.fetchall()[0]
 
         self.sort_by = options[0]
-        self.ids.sort_by_item.secondary_text = self.sort_options.get(self.sort_by)
-
         self.list_subtitles_options = [bool(int(o)) for o in options[1].split(",")]
-
         self.animation_options = [bool(int(o)) for o in options[2].split(",")]
 
     def setOptions(self):
+        self.ids.sort_by_item.secondary_text = self.sort_options.get(self.sort_by)
+
         self.setListSubtitlesText()
 
         self.ids.transition_animation_switch.active = self.animation_options[0]
@@ -197,11 +196,6 @@ class AppearanceOptionsScreen(Screen):
         self.dialog.dismiss()
 
     def goBackBtn(self):
-        self.cursor.execute("SELECT animation_options FROM options")
-        transition_animation = bool(int(self.cursor.fetchone()[0][0]))
-
-        self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if transition_animation else NoTransition()
-
         self.manager.setOptionsScreen()
 
 

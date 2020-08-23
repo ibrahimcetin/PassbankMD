@@ -2,8 +2,10 @@ import os
 import sqlite3
 
 from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
 from kivy.core.window import Window
+
+from kivymd.theming import ThemeManager
 
 from baseclasses.registerscreen import RegisterScreen
 from baseclasses.loginscreen import LoginScreen
@@ -25,6 +27,8 @@ class Manager(ScreenManager):
         self.cipher = None
         self.master_password_exists = None
         self.file_manager_open = None
+
+        self.theme_cls = ThemeManager()
 
         self.options_screen_names = [
             "appearance_options_screen",
@@ -140,6 +144,10 @@ class Manager(ScreenManager):
         self.current = "add_account_screen"
 
     def setOptionsScreen(self):
+        if self.current_screen.name == "appearance_options_screen":
+            self.appearance_options_screen.getOptions() # update self.animation_options
+            self.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.appearance_options_screen.animation_options[0] else NoTransition()
+
         if self.has_screen("options_screen"):
             self.current = "options_screen"
 
