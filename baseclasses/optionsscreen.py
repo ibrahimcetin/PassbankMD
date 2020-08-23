@@ -5,7 +5,7 @@ import random
 from functools import partial
 
 from kivy.utils import platform
-from kivy.uix.screenmanager import Screen
+from kivy.uix.screenmanager import Screen, FadeTransition, NoTransition
 from kivy.properties import StringProperty
 from kivy.animation import Animation
 from kivy.core.clipboard import Clipboard
@@ -92,16 +92,24 @@ class AppearanceOptionsScreen(Screen):
         self.theme_cls = ThemeManager()
 
         self.getOptions()
+        self.setOptions()
 
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles FROM options")
+        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options FROM options")
         options = self.cursor.fetchall()[0]
 
         self.sort_by = options[0]
         self.ids.sort_by_item.secondary_text = self.sort_options.get(self.sort_by)
 
         self.list_subtitles_options = [bool(int(o)) for o in options[1].split(",")]
+
+        self.animation_options = [bool(int(o)) for o in options[2].split(",")]
+
+    def setOptions(self):
         self.setListSubtitlesText()
+
+        self.ids.transition_animation_switch.active = self.animation_options[0]
+        self.ids.bottomsheet_animation_switch.active = self.animation_options[1]
 
     def sortByButton(self):
         def is_current(code):
@@ -175,10 +183,25 @@ class AppearanceOptionsScreen(Screen):
 
         self.ids.list_subtitles_item.secondary_text = text
 
+    def animationFunctions(self):
+        options = []
+
+        options.append("1" if self.ids.transition_animation_switch.active else "0")
+        options.append("1" if self.ids.bottomsheet_animation_switch.active else "0")
+
+        o = ",".join(options)
+        self.cursor.execute("UPDATE options SET animation_options = ?", (o,))
+        self.con.commit()
+
     def closeDialog(self, button=None):
         self.dialog.dismiss()
 
     def goBackBtn(self):
+        self.cursor.execute("SELECT animation_options FROM options")
+        transition_animation = bool(int(self.cursor.fetchone()[0][0]))
+
+        self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if transition_animation else NoTransition()
+
         self.manager.setOptionsScreen()
 
 

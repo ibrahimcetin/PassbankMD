@@ -16,11 +16,15 @@ class Passbank(MDApp):
         self.fps_monitor_start()
     """
 
+    def on_stop(self):
+        self.manager.con.close()
+
     def on_pause(self):
         self.getOptions()
 
         if self.auto_exit:
-            self.manager.transition = NoTransition()
+            if self.transition_animation:
+                self.manager.transition = NoTransition()
 
             try:
                 self.manager.main_screen.bottom_sheet.dismiss()
@@ -41,11 +45,15 @@ class Passbank(MDApp):
             except:
                 pass
 
-            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+            if self.transition_animation:
+                self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
 
     def getOptions(self):
-        self.manager.cursor.execute("SELECT auto_exit FROM options")
-        self.auto_exit = bool(self.manager.cursor.fetchone()[0])
+        self.manager.cursor.execute("SELECT animation_options, auto_exit FROM options")
+        options = self.manager.cursor.fetchone()
+
+        self.transition_animation = bool(int(options[0][0]))
+        self.auto_exit = bool(options[1])
 
 
 Passbank().run()

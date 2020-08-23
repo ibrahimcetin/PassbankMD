@@ -67,6 +67,32 @@
                     text: "List Subtitles"
                     on_press: root.listSubtitlesButton()
 
+            Widget:
+                size_hint_y: None
+                height: dp(25)
+
+            MDLabel:
+                text: "ANIMATIONS"
+                font_style: "Button"
+                color: 1,0,0,1
+
+            MDList:
+                OneLineListItemWithContainer:
+                    text: "Transition Animation"
+                    on_press: transition_animation_switch.trigger_action(duration=0)
+
+                    RightSwitch:
+                        id: transition_animation_switch
+                        on_active: root.animationFunctions()
+
+                OneLineListItemWithContainer:
+                    text: "Bottom Sheet Animation"
+                    on_press: bottomsheet_animation_switch.trigger_action(duration=0)
+
+                    RightSwitch:
+                        id: bottomsheet_animation_switch
+                        on_active: root.animationFunctions()
+
 
 <TwoLineListItemWithContainer>:
     BoxLayout:
@@ -102,7 +128,7 @@
                 id: database_container
 
             Widget:
-                size_hint: None, None
+                size_hint_y: None
                 height: dp(25)
 
             MDLabel:

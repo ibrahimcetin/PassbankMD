@@ -44,12 +44,7 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
 
         return super().on_dismiss()
 
-    def resize_content_layout(self, content, _layout, interval=0):
-        if not _layout.ids.get("box_sheet_list"):
-            layout = _layout
-        else:
-            layout = _layout.ids.box_sheet_list
-
+    def resize_content_layout(self, content, layout, interval=0):
         height = layout.height
 
         if self.animation:
@@ -59,6 +54,8 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
             Animation(height=height, d=self.duration_opening).start(self.layout)
             Animation(height=height, d=self.duration_opening).start(self.content)
         else:
+            # For a reason I don't understand, bottom sheet height is short.
+            # I will try to fix this problem.
             layout.height = height
             content.height = height
 
@@ -287,17 +284,18 @@ class MainScreen(Screen):
         self.initUI()
 
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles, auto_backup, auto_backup_location, password_length, password_suggestion_options FROM options")
+        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, password_length, password_suggestion_options FROM options")
         options = self.cursor.fetchall()[0]
 
         self.sort_by = options[0]
         self.list_subtitles_options = [bool(int(o)) for o in options[1].split(",")]
+        self.bottomsheet_animation = bool(int(options[2][2]))
 
-        self.auto_backup = True if options[2] == 1 else False
-        self.auto_backup_location = options[3]
+        self.auto_backup = True if options[3] == 1 else False
+        self.auto_backup_location = options[4]
 
-        self.password_length = options[4]
-        self.password_suggestion_options = [bool(int(o)) for o in options[5].split(',')]
+        self.password_length = options[5]
+        self.password_suggestion_options = [bool(int(o)) for o in options[6].split(',')]
 
     def getAccounts(self):
         if self.sort_by == "a_to_z":
@@ -405,6 +403,6 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location), animation=True, duration_opening=0.1)
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location), animation=self.bottomsheet_animation, duration_opening=0.1)
         self.bottom_sheet.open()
 

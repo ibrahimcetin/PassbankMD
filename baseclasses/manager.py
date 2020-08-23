@@ -61,7 +61,7 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
 
     def getCipher(self):
         key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"

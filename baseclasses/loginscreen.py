@@ -1,5 +1,8 @@
-from kivy.uix.screenmanager import Screen
+from kivy.uix.screenmanager import Screen, FadeTransition, NoTransition
 from kivy.animation import Animation
+
+from kivymd.theming import ThemeManager
+
 
 class LoginScreen(Screen):
     def __init__(self, **kwargs):
@@ -8,14 +11,17 @@ class LoginScreen(Screen):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
+        self.theme_cls = ThemeManager()
+
         self.getOptions()
 
     def getOptions(self):
-        self.cursor.execute("SELECT master_password, fast_login FROM options")
+        self.cursor.execute("SELECT master_password, animation_options, fast_login FROM options")
         options = self.cursor.fetchone()
 
         self.master_password = self.cipher.decrypt(options[0])
-        self.fast_login = options[1]
+        self.transition_animation = bool(int(options[1][0]))
+        self.fast_login = options[2]
 
     def loginButton(self, password_field):
         if not password_field.text:
@@ -23,6 +29,7 @@ class LoginScreen(Screen):
             self.initFieldError(password_field)
 
         elif self.master_password == password_field.text:
+            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
             self.manager.setMainScreen()
 
         else:
@@ -50,6 +57,7 @@ class LoginScreen(Screen):
 
     def fastLoginFunction(self, password_field):
         if self.master_password == password_field.text:
+            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
             self.manager.setMainScreen()
 
     def initFieldError(self, instance):
