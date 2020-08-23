@@ -7,6 +7,8 @@ from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import StringProperty
 from kivy.animation import Animation
+from kivy.utils import platform
+from kivy.metrics import dp
 
 from kivymd.uix.list import OneLineIconListItem, TwoLineIconListItem, ThreeLineIconListItem
 from kivymd.uix.bottomsheet import MDCustomBottomSheet
@@ -45,7 +47,12 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
         return super().on_dismiss()
 
     def resize_content_layout(self, content, layout, interval=0):
-        height = layout.height
+        if platform == "android":
+            height = layout.height + dp(10)
+            no_animation_height = height + dp(50)
+        else:
+            height = layout.height
+            no_animation_height = height + dp(40)
 
         if self.animation:
             self.content = content
@@ -54,10 +61,9 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
             Animation(height=height, d=self.duration_opening).start(self.layout)
             Animation(height=height, d=self.duration_opening).start(self.content)
         else:
-            # For a reason I don't understand, bottom sheet height is short.
-            # I will try to fix this problem.
-            layout.height = height
-            content.height = height
+            # I think I found a simple solution.
+            layout.height = no_animation_height
+            content.height = no_animation_height
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
