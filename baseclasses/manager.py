@@ -1,4 +1,3 @@
-import os
 import sqlite3
 
 from kivy.lang import Builder

@@ -4,7 +4,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
 from kivy.utils import platform
 
-from kivymd.toast import toast
 from kivymd.uix.snackbar import Snackbar
 
 
