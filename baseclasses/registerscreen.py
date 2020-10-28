@@ -5,6 +5,7 @@ from kivy.animation import Animation
 from kivy.utils import platform
 
 from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.button import MDFlatButton
 
 
 class RegisterScreen(Screen):
@@ -31,15 +32,12 @@ class RegisterScreen(Screen):
 
             self.manager.setMainScreen()
 
-            self.snackbar = Snackbar(
+            snackbar = Snackbar(
                 text="Make sure that you Remember your Master Password",
-                padding="20dp",
-                button_text="GOT IT",
-                button_color=(1, 0, 1, 1),
-                duration=60,
-                button_callback=self.closeSnackbar
+                duration=600,
             )
-            self.snackbar.show()
+            snackbar.buttons = [MDFlatButton(text="GOT IT", text_color=(1, 0, 1, 1), on_press=snackbar.dismiss)]
+            snackbar.open()
 
         else:
             self.initFieldError(confirm_password_field)
@@ -71,9 +69,6 @@ class RegisterScreen(Screen):
 
         else:
             self.closeFieldError(instance)
-
-    def closeSnackbar(self, button):
-        self.snackbar.duration = 0
 
     def initFieldError(self, instance):
         instance.error = True
