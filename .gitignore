@@ -4,3 +4,5 @@ baseclasses/__pycache__/
 bin/
 pass.db
 .vscode/
+build/
+dist/
