@@ -1,4 +1,6 @@
 import sqlite3
+import psycopg2
+from threading import Thread
 
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
@@ -64,7 +66,37 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS offline_queries (id INTEGER PRIMARY KEY, query TEXT)")
+
+    def connectRemoteDatabase(self):
+        self.pg_con = None
+        self.pg_cursor = None
+        self.internet_connection = True
+
+        self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
+        pg_data = self.cursor.fetchone()
+
+        def connect():
+            try:
+                self.pg_con = psycopg2.connect(database=pg_data[1], user=pg_data[2], password=pg_data[3], host=pg_data[4], port=pg_data[5])
+                self.pg_cursor = self.pg_con.cursor()
+
+                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
+                self.internet_connection = True
+            except:
+                self.internet_connection = False
+
+        if pg_data is not None:
+            if all(pg_data):
+                t = Thread(target=connect)
+                t.start()
+                t.join()
+
+    def runRemoteDatabaseQuery(self, query):
+        self.pg_cursor.execute(query)
+        self.pg_con.commit()
+        self.internet_connection = True
 
     def getCipher(self):
         key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"
@@ -80,6 +112,7 @@ class Manager(ScreenManager):
 
     def setStartScreen(self):
         self.connectDatabase()
+        Thread(target=self.connectRemoteDatabase).start() #TODO improve this
         self.getCipher()
         self.checkMasterPasswordExists()
 
@@ -123,7 +156,7 @@ class Manager(ScreenManager):
         else:
             Builder.load_file("kv/main_screen.kv")
 
-            self.main_screen = MainScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="main_screen")
+            self.main_screen = MainScreen(con=self.con, cursor=self.cursor, pg_con=self.pg_con, pg_cursor=self.pg_cursor, cipher=self.cipher, internet_connection=self.internet_connection, name="main_screen")
             self.add_widget(self.main_screen)
             self.current = "main_screen"
 

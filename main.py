@@ -18,6 +18,8 @@ class Passbank(MDApp):
 
     def on_stop(self):
         self.manager.con.close()
+        if self.manager.pg_con is not None:
+            self.manager.pg_con.close()
 
     def on_pause(self):
         self.getOptions()

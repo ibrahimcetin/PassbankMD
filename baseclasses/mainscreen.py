@@ -1,8 +1,10 @@
 import string
 import random
 import shutil
+from threading import Thread
 
 from kivy.uix.screenmanager import Screen
+from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import StringProperty
@@ -28,6 +30,10 @@ class RVTwoLineIconListItem(TwoLineIconListItem):
 
 class RVThreeLineIconListItem(ThreeLineIconListItem):
     icon = StringProperty()
+
+
+class OfflineLabel(Label):
+    pass
 
 
 class MyMDCustomBottomSheet(MDCustomBottomSheet):
@@ -93,6 +99,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         self.auto_backup = kwargs.get("auto_backup")
         self.auto_backup_location = kwargs.get("auto_backup_location")
+        self.remote_database = kwargs.get("remote_database")
 
     def copyPassword(self):
         self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
@@ -156,6 +163,15 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
                 changed.append("Password")
 
+                if self.remote_database:
+                    query = "UPDATE accounts SET password={} WHERE site={} AND email={}".format(repr(encrypted), repr(self.site), repr(self.email))
+                    try:
+                        Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
+                    except:
+                        self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+                        self.con.commit()
+                        self.main_screen.manager.internet_connection = False
+
             else:
                 self.initFieldError(confirm_new_password_field)
 
@@ -193,10 +209,19 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.dismiss()
         self.main_screen.bottom_sheet.dismiss()
 
+        self.main_screen.initUI() # refresh main screen
+
         if self.auto_backup:
             shutil.copy2("pass.db", self.auto_backup_location)
 
-        self.main_screen.initUI() # refresh main screen
+        if self.remote_database:
+            query = "DELETE FROM accounts WHERE site={} AND email={}".format(repr(self.site), repr(self.email))
+            try:
+                Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
+            except:
+                self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+                self.con.commit()
+                self.main_screen.manager.internet_connection = False
 
     def showPassword(self):
         self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
@@ -285,23 +310,90 @@ class MainScreen(Screen):
 
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
+        self.pg_con = kwargs.get("pg_con")
+        self.pg_cursor = kwargs.get("pg_cursor")
         self.cipher = kwargs.get("cipher")
+
+        self.internet_connection = kwargs.get("internet_connection")
+
+        if self.pg_con is not None:
+            self.cursor.execute("SELECT * FROM offline_queries")
+            queries = self.cursor.fetchall()
+
+            self.cursor.execute("SELECT * FROM accounts")
+            local_data = self.cursor.fetchall()
+
+            Thread(target=self.sync, args=(queries, local_data)).start()
 
         self.initUI()
 
+    def offlineQueries(self, queries):
+        for _id, query in queries:
+            try:
+                self.pg_cursor.execute(query)
+                self.pg_con.commit()
+
+                self.cursor.execute("DELETE FROM offline_queries WHERE id=?", (_id,))
+                self.con.commit()
+
+                self.internet_connection = True
+            except:
+                self.internet_connection = False
+
+    def syncDatabases(self, local_data):
+        def fetch_remote_data():
+            self.pg_cursor.execute("SELECT * FROM accounts")
+            return self.pg_cursor.fetchall()
+
+        def remote_diff():
+            remote_data = fetch_remote_data()
+            return [data for data in remote_data if data not in local_data]
+
+        def local_diff():
+            remote_data = fetch_remote_data()
+            return [data for data in local_data if data not in remote_data]
+
+        pg_data = remote_diff()
+        for account in pg_data:
+            self.cursor.execute("SELECT * FROM accounts WHERE site=? AND email=? AND username=?", account[:3])
+            updated_account = self.cursor.fetchone()
+
+            if updated_account:
+                self.cursor.execute("UPDATE accounts SET password=? WHERE site=? AND email=? AND username=?", (account[3], account[0], account[1], account[2]))
+                local_data.remove(updated_account)
+            else:
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?)", account)
+
+        sl_data = local_diff()
+        for account in sl_data:
+            self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", account[:2])
+
+        self.con.commit()
+
+    def sync(self, queries, local_data):
+        try:
+            self.offlineQueries(queries)
+            self.syncDatabases(local_data)
+
+            self.initUI()
+            self.internet_connection = True
+        except:
+            self.internet_connection = False
+
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, password_length, password_suggestion_options FROM options")
-        options = self.cursor.fetchall()[0]
+        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, remote_database, password_length, password_suggestion_options FROM options")
+        options = self.cursor.fetchone()
 
         self.sort_by = options[0]
         self.list_subtitles_options = [bool(int(o)) for o in options[1].split(",")]
         self.bottomsheet_animation = bool(int(options[2][2]))
 
-        self.auto_backup = True if options[3] == 1 else False
+        self.auto_backup = bool(options[3])
         self.auto_backup_location = options[4]
+        self.remote_database = bool(options[5])
 
-        self.password_length = options[5]
-        self.password_suggestion_options = [bool(int(o)) for o in options[6].split(',')]
+        self.password_length = options[6]
+        self.password_suggestion_options = [bool(int(o)) for o in options[7].split(',')]
 
     def getAccounts(self):
         if self.sort_by == "a_to_z":
@@ -320,6 +412,9 @@ class MainScreen(Screen):
     def initUI(self):
         self.getOptions()
         self.getAccounts()
+
+        if not self.internet_connection:
+            self.add_widget(OfflineLabel())
 
         search = False
         search_text = self.ids.search_field.text
@@ -409,6 +504,6 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location), animation=self.bottomsheet_animation, duration_opening=0.1)
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location, remote_database=self.remote_database), animation=self.bottomsheet_animation, duration_opening=0.1)
         self.bottom_sheet.open()
 

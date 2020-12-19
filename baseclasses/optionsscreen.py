@@ -3,6 +3,7 @@ import shutil
 import string
 import random
 from functools import partial
+from threading import Thread
 
 from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
@@ -13,6 +14,7 @@ from kivy.core.clipboard import Clipboard
 from kivymd.uix.list import OneLineIconListItem, OneLineListItem, TwoLineListItem, OneLineAvatarIconListItem, ILeftBodyTouch, IRightBodyTouch, ContainerSupport
 from kivymd.uix.selectioncontrol import MDCheckbox, MDSwitch
 from kivymd.uix.dialog import MDDialog
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.toast import toast
@@ -206,6 +208,9 @@ class TwoLineListItemWithContainer(ContainerSupport, TwoLineListItem):
 class RightSwitch(MDSwitch, IRightBodyTouch):
     pass
 
+class RemoteDatabaseDialogContent(MDBoxLayout):
+    pass
+
 class DatabaseOptionsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -218,23 +223,30 @@ class DatabaseOptionsScreen(Screen):
         self.initUI()
 
     def getOptions(self):
-        self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
+        self.cursor.execute("SELECT auto_backup, auto_backup_location, remote_database, db_pass, db_user, db_name, db_port, db_host FROM options")
         options = self.cursor.fetchall()[0]
 
-        self.auto_backup = options[0]
+        self.auto_backup = bool(options[0])
         self.auto_backup_location = options[1]
+        self.remote_database = bool(options[2])
+
+        self.pg_info = options[3:]
 
     def setOptions(self):
         self.ids.switch.active = self.auto_backup
 
         self.ids.location_list_item.secondary_text = self.auto_backup_location
         self.file_manager_start_path = self.auto_backup_location
+        self.ids.remote_database_switch.active = self.remote_database
+
+        if all(self.pg_info):
+            for list_item, description in zip(self.ids.remote_database_list.children, self.pg_info):
+                list_item.secondary_text = description if list_item.text != "Password" else "**********"
 
     def initUI(self):
         data = [("Backup Database", "Backup encrypted database"), ("Restore Database", "Restore encrypted database")]
-
-        for text, second in data:
-            self.ids.database_container.add_widget(TwoLineListItem(text=text, secondary_text=second, on_press=self.checkPlatform))
+        for text, description in data:
+            self.ids.database_container.add_widget(TwoLineListItem(text=text, secondary_text=description, on_press=self.checkPlatform))
 
     def checkPlatform(self, button):
         if platform == "android":
@@ -343,9 +355,87 @@ class DatabaseOptionsScreen(Screen):
             self.exit_manager()
 
             shutil.copy2(path, "pass.db")
+            self.getOptions()
+            self.setOptions()
+
             toast("Database Successfully Restored")
         else:
             toast("Please Select a Database")
+
+    def remoteDatabaseSwitch(self, switch):
+        self.cursor.execute("UPDATE options SET remote_database = ?", (int(switch.active),))
+        self.con.commit()
+
+    def remoteDatabaseDialog(self, list_item):
+        def dismiss_dialog(button):
+            self.dialog.dismiss()
+
+        content = RemoteDatabaseDialogContent()
+        content.ids.text_field.hint_text = list_item.text
+
+        self.dialog = MDDialog(
+            title=f"{list_item.text}:",
+            type="custom",
+            content_cls=content,
+            buttons=[MDFlatButton(text="Cancel", on_press=dismiss_dialog), MDRaisedButton(text="Okay", on_press=lambda btn: self.updateRemoteDatabaseOption(list_item, content.ids.text_field.text))]
+        )
+        self.dialog.open()
+
+    def updateRemoteDatabaseOption(self, list_item, value):
+        if value.isspace() or value == '':
+            pass
+        else:
+            list_item.secondary_text = value if list_item.text != "Password" else "**********"
+
+            text = list_item.text
+            if text == "Database Name":
+                variable_name = "db_name"
+            elif text == "Password":
+                variable_name = "db_pass"
+            else:
+                variable_name = f"db_{text.lower()}"
+
+            query = f"UPDATE options SET {variable_name} = '{value}'"
+            self.cursor.execute(query)
+            self.con.commit()
+
+        self.dialog.dismiss()
+
+    def syncDatabaseButton(self):
+        if self.manager.pg_con is None:
+            self.manager.connectRemoteDatabase()
+        pg_con = self.manager.pg_con
+        pg_cursor = self.manager.pg_cursor
+
+        if pg_con is None:
+            toast("Something went wrong")
+            return
+
+        pg_cursor.execute("SELECT * FROM accounts")
+        remote_data = pg_cursor.fetchall()
+        self.cursor.execute("SELECT * FROM accounts")
+        local_data = self.cursor.fetchall()
+
+        if remote_data and local_data:
+            toast("Please, Delete 'accounts' table in the PostgreSQL database")
+            #TODO user can select remote or local database for sync
+
+        elif local_data:
+            def insert_data_to_remote_database():
+                for account in local_data:
+                    pg_cursor.execute("INSERT INTO accounts (site, email, username, password) VALUES(%s, %s, %s, %s)", account)
+                pg_con.commit()
+                toast("Sync Completed")
+
+            toast("Please wait until Sync is Complete")
+            Thread(target=insert_data_to_remote_database).start()
+
+        elif remote_data:
+            toast("Please wait until Sync is Complete")
+            for account in remote_data:
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?)", account)
+            self.con.commit()
+            toast("Sync Completed")
 
     def exit_manager(self, *args):
         self.file_manager.close()

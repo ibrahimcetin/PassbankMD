@@ -1,4 +1,5 @@
 import shutil
+from threading import Thread
 
 from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
@@ -14,7 +15,7 @@ class AddAccountScreen(Screen):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
-        self.getAutoBackupOptions()
+        self.getOptions()
 
     def addAccountButton(self, site_field, password_field, confirm_password_field):
         site = site_field.text
@@ -39,20 +40,30 @@ class AddAccountScreen(Screen):
 
                 toast(f"{site} Account Added")
 
+                self.manager.setMainScreen() # refresh main screen
+
                 if self.auto_backup: # auto backup
                     shutil.copy2("pass.db", self.auto_backup_location)
 
-                self.manager.setMainScreen() # refresh main screen
+                if self.remote_database:
+                    query = "INSERT INTO accounts VALUES({},{},{},{})".format(repr(site), repr(email), repr(username), repr(encrypted))
+                    try:
+                        Thread(target=self.manager.runRemoteDatabaseQuery(query)).start()
+                    except:
+                        self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+                        self.con.commit()
+                        self.manager.internet_connection = False
 
         else:
             self.initFieldError(confirm_password_field)
 
-    def getAutoBackupOptions(self):
-        self.cursor.execute("SELECT auto_backup, auto_backup_location FROM options")
-        options = self.cursor.fetchall()[0]
+    def getOptions(self):
+        self.cursor.execute("SELECT auto_backup, auto_backup_location, remote_database FROM options")
+        options = self.cursor.fetchone()
 
-        self.auto_backup = True if options[0] == 1 else False
+        self.auto_backup = bool(options[0])
         self.auto_backup_location = options[1]
+        self.remote_database = bool(options[2])
 
     def showPasswordBtn(self, button, field_1, field_2):
         if button.icon == "eye-outline":

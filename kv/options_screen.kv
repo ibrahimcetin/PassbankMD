@@ -102,6 +102,18 @@
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
 
+<RemoteDatabaseDialogContent>:
+    orientation: "vertical"
+    spacing: dp(12)
+    size_hint_y: None
+    height: dp(80)
+
+    MDTextField:
+        id: text_field
+        password: True if self.hint_text == "Password" else False
+
+    Widget:
+
 <DatabaseOptionsScreen>:
     MDToolbar:
         title: "Database"
@@ -112,7 +124,7 @@
     ScrollView:
         y: -app.theme_cls.standard_increment
         do_scroll_x: False
-        do_scroll_y: False
+        scroll_wheel_distance: 70
 
         MDGridLayout:
             cols: 1
@@ -152,6 +164,65 @@
                     disabled: not switch.active
                     on_press: root.autoBackupLocationFunction()
 
+            Widget:
+                size_hint_y: None
+                height: dp(25)
+
+            MDLabel:
+                text: "REMOTE DATABASE"
+                font_style: "Button"
+                color: 1,0,0,1
+
+            MDList:
+                id: remote_database_list
+                TwoLineListItemWithContainer:
+                    text: "Remote Database"
+                    secondary_text: "Connect PostgreSQL database"
+                    on_press: remote_database_switch.trigger_action(duration=0)
+
+                    RightSwitch:
+                        id: remote_database_switch
+                        on_active: root.remoteDatabaseSwitch(self)
+
+                TwoLineListItem:
+                    text: "Host"
+                    disabled: not remote_database_switch.active
+                    on_press: root.remoteDatabaseDialog(self)
+
+                TwoLineListItem:
+                    text: "Port"
+                    disabled: not remote_database_switch.active
+                    on_press: root.remoteDatabaseDialog(self)
+
+                TwoLineListItem:
+                    text: "Database Name"
+                    disabled: not remote_database_switch.active
+                    on_press: root.remoteDatabaseDialog(self)
+
+                TwoLineListItem:
+                    text: "User"
+                    disabled: not remote_database_switch.active
+                    on_press: root.remoteDatabaseDialog(self)
+
+                TwoLineListItem:
+                    text: "Password"
+                    disabled: not remote_database_switch.active
+                    on_press: root.remoteDatabaseDialog(self)
+
+            Widget:
+                size_hint_y: None
+                height: dp(30)
+
+            MDRelativeLayout:
+                MDRaisedButton:
+                    text: "Sync Database"
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    disabled: not remote_database_switch.active
+                    on_press: root.syncDatabaseButton()
+
+            Widget:
+                size_hint_y: None
+                height: dp(70)
 
 <OneLineListItemWithContainer>:
     BoxLayout:
