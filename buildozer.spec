@@ -28,7 +28,7 @@ source.include_patterns = fonts/*
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.6
+version = 0.7
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
@@ -36,7 +36,7 @@ version = 0.6
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.0.0rc3,git+https://github.com/kivymd/KivyMD.git@b8b718f24ce8d7dc90b78ea62574e208ef32776a,sqlite3,cryptography,psycopg2,sdl2_ttf==2.0.15
+requirements = python3,kivy==2.0.0rc3,https://github.com/ibrahimcetin/KivyMD/archive/master.zip,sqlite3,cryptography,psycopg2,sdl2_ttf==2.0.15
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
