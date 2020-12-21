@@ -65,7 +65,7 @@ class Manager(ScreenManager):
         self.con = sqlite3.connect("pass.db", check_same_thread=False)
         self.cursor = self.con.cursor()
 
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
         self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
         self.cursor.execute("CREATE TABLE IF NOT EXISTS offline_queries (id INTEGER PRIMARY KEY, query TEXT)")
 
@@ -82,7 +82,7 @@ class Manager(ScreenManager):
                 self.pg_con = psycopg2.connect(database=pg_data[1], user=pg_data[2], password=pg_data[3], host=pg_data[4], port=pg_data[5])
                 self.pg_cursor = self.pg_con.cursor()
 
-                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS accounts (site TEXT, email TEXT, username TEXT, password TEXT)")
+                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
                 self.internet_connection = True
             except:
                 self.internet_connection = False

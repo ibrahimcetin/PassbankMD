@@ -82,9 +82,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
+        self._id = kwargs.get("_id")
         self.site = kwargs.get("site")
         self.email = kwargs.get("email")
         self.username = kwargs.get("username")
+        self.encrypted = kwargs.get("encrypted")
 
         if self.email == " ":
             self.email = ""
@@ -102,10 +104,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.remote_database = kwargs.get("remote_database")
 
     def copyPassword(self):
-        self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
-        encrypted = self.cursor.fetchall()[0][0]
-
-        password = self.cipher.decrypt(encrypted)
+        password = self.cipher.decrypt(self.encrypted)
         Clipboard.copy(password)
 
         toast(f"{self.site} Password Copied")
@@ -128,7 +127,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             pass
 
         else:
-            self.cursor.execute("UPDATE accounts SET site=? WHERE site=? AND email=?",(new_site, self.site, self.email))
+            self.cursor.execute("UPDATE accounts SET site=? WHERE id=?",(new_site, self._id))
             self.con.commit()
 
             self.site = new_site
@@ -137,7 +136,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         ###
 
         if not (new_email == self.email):
-            self.cursor.execute("UPDATE accounts SET email=? WHERE site=? AND email=?",(new_email, self.site, self.email))
+            self.cursor.execute("UPDATE accounts SET email=? WHERE id=?",(new_email, self._id))
             self.con.commit()
 
             self.email = new_email
@@ -145,7 +144,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             changed.append("Email")
 
         if not (new_username == self.username):
-            self.cursor.execute("UPDATE accounts SET username=? WHERE site=? AND email=?",(new_username, self.site, self.email))
+            self.cursor.execute("UPDATE accounts SET username=? WHERE id=?",(new_username, self._id))
             self.con.commit()
 
             self.username = new_username
@@ -156,21 +155,12 @@ class ContentCustomBottomSheet(MDBoxLayout):
             if new_password == confirm_new_password:
                 encrypted = self.cipher.encrypt(new_password)
 
-                self.cursor.execute("UPDATE accounts SET password=? WHERE site=? AND email=?",(encrypted, self.site, self.email))
+                self.cursor.execute("UPDATE accounts SET password=? WHERE id=?",(encrypted, self._id))
                 self.con.commit()
 
                 #TODO clear new password fields after password changed
 
                 changed.append("Password")
-
-                if self.remote_database:
-                    query = "UPDATE accounts SET password={} WHERE site={} AND email={}".format(repr(encrypted), repr(self.site), repr(self.email))
-                    try:
-                        Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
-                    except:
-                        self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
-                        self.con.commit()
-                        self.main_screen.manager.internet_connection = False
 
             else:
                 self.initFieldError(confirm_new_password_field)
@@ -178,6 +168,20 @@ class ContentCustomBottomSheet(MDBoxLayout):
         if len(changed) > 0:
             output = ", ".join(changed)
             toast(f"{output} Successfully Changed")
+
+            if self.remote_database:
+                if new_password and new_password == confirm_new_password:
+                    encrypted = self.cipher.encrypt(new_password)
+                    query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(encrypted), repr(self._id))
+                else:
+                    query = "UPDATE accounts SET site={}, email={}, username={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(self._id))
+
+                try:
+                    Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
+                except:
+                    self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+                    self.con.commit()
+                    self.main_screen.manager.internet_connection = False
 
         if self.auto_backup and len(changed) > 0: # auto backup
             shutil.copy2("pass.db", self.auto_backup_location)
@@ -201,7 +205,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.open()
 
     def deleteAccount(self, button):
-        self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", (self.site, self.email))
+        self.cursor.execute("DELETE FROM accounts WHERE id=?", (self._id,))
         self.con.commit()
 
         toast(f"{self.site} Successfully Deleted")
@@ -215,7 +219,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             shutil.copy2("pass.db", self.auto_backup_location)
 
         if self.remote_database:
-            query = "DELETE FROM accounts WHERE site={} AND email={}".format(repr(self.site), repr(self.email))
+            query = "DELETE FROM accounts WHERE id={}".format(repr(self._id),)
             try:
                 Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
             except:
@@ -224,10 +228,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 self.main_screen.manager.internet_connection = False
 
     def showPassword(self):
-        self.cursor.execute("SELECT password FROM accounts WHERE site=? AND email=?",(self.site, self.email,))
-        encrypted = self.cursor.fetchall()[0][0]
-
-        password = self.cipher.decrypt(encrypted)
+        password = self.cipher.decrypt(self.encrypted)
 
         self.dialog = MDDialog(
             title=f"{self.site} Password",
@@ -329,16 +330,11 @@ class MainScreen(Screen):
 
     def offlineQueries(self, queries):
         for _id, query in queries:
-            try:
-                self.pg_cursor.execute(query)
-                self.pg_con.commit()
+            self.pg_cursor.execute(query)
+            self.pg_con.commit()
 
-                self.cursor.execute("DELETE FROM offline_queries WHERE id=?", (_id,))
-                self.con.commit()
-
-                self.internet_connection = True
-            except:
-                self.internet_connection = False
+            self.cursor.execute("DELETE FROM offline_queries WHERE id=?", (_id,))
+            self.con.commit()
 
     def syncDatabases(self, local_data):
         def fetch_remote_data():
@@ -355,18 +351,18 @@ class MainScreen(Screen):
 
         pg_data = remote_diff()
         for account in pg_data:
-            self.cursor.execute("SELECT * FROM accounts WHERE site=? AND email=? AND username=?", account[:3])
+            self.cursor.execute("SELECT * FROM accounts WHERE id=?", (account[0],))
             updated_account = self.cursor.fetchone()
 
             if updated_account:
-                self.cursor.execute("UPDATE accounts SET password=? WHERE site=? AND email=? AND username=?", (account[3], account[0], account[1], account[2]))
+                self.cursor.execute("UPDATE accounts SET site=?, email=?, username=?, password=? WHERE id=?", (*account[1:], account[0]))
                 local_data.remove(updated_account)
             else:
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?)", account)
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
 
         sl_data = local_diff()
         for account in sl_data:
-            self.cursor.execute("DELETE FROM accounts WHERE site=? AND email=?", account[:2])
+            self.cursor.execute("DELETE FROM accounts WHERE id=?", (account[0],))
 
         self.con.commit()
 
@@ -403,7 +399,7 @@ class MainScreen(Screen):
         else:
             option = ""
 
-        self.cursor.execute(f"SELECT site,email,username FROM accounts {option}")
+        self.cursor.execute(f"SELECT * FROM accounts {option}")
         self.accounts = self.cursor.fetchall()
 
         if self.sort_by == "last_to_first":
@@ -421,7 +417,7 @@ class MainScreen(Screen):
         if search_text:
             search = True
 
-        def add_accounts_to_recycle_view(site, email, username):
+        def add_accounts_to_recycle_view(_id, site, email, username, encrypted):
             # Set icon
             icon = "-".join(site.lower().split())
 
@@ -441,7 +437,7 @@ class MainScreen(Screen):
             base = {
                     "icon": icon,
                     "text": site,
-                    "on_press": lambda site=site, email=email, username=username: self.openBottomSheet(site, email, username),
+                    "on_press": lambda x=None: self.openBottomSheet(_id, site, email, username, encrypted),
                     }
 
             if all(self.list_subtitles_options):
@@ -467,15 +463,17 @@ class MainScreen(Screen):
 
         self.ids.recycle_view.data = []
         for account in self.accounts:
-            site = account[0]
-            email = account[1]
-            username = account[2]
+            _id = account[0]
+            site = account[1]
+            email = account[2]
+            username = account[3]
+            encrypted = account[4]
 
             if search:
                 if search_text.lower() in site.lower():
-                    add_accounts_to_recycle_view(site, email, username)
+                    add_accounts_to_recycle_view(_id, site, email, username, encrypted)
             else:
-                add_accounts_to_recycle_view(site, email, username)
+                add_accounts_to_recycle_view(_id, site, email, username, encrypted)
 
     def actionButton(self, button):
         if button.icon == "key":
@@ -503,7 +501,7 @@ class MainScreen(Screen):
         if button.icon == "account-plus":
             self.manager.setAddAccountScreen()
 
-    def openBottomSheet(self, site, email, username):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, site=site, email=email, username=username, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location, remote_database=self.remote_database), animation=self.bottomsheet_animation, duration_opening=0.1)
+    def openBottomSheet(self, _id, site, email, username, encrypted):
+        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, _id=_id, site=site, email=email, username=username, encrypted=encrypted, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location, remote_database=self.remote_database), animation=self.bottomsheet_animation, duration_opening=0.1)
         self.bottom_sheet.open()
 

@@ -1,4 +1,5 @@
 import shutil
+import uuid
 from threading import Thread
 
 from kivy.uix.screenmanager import Screen
@@ -33,9 +34,10 @@ class AddAccountScreen(Screen):
                 self.initFieldError(password_field)
 
             else:
+                _id = uuid.uuid4().hex
                 encrypted = self.cipher.encrypt(password)
 
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?)",(site, email, username, encrypted))
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)",(_id, site, email, username, encrypted))
                 self.con.commit()
 
                 toast(f"{site} Account Added")
@@ -46,7 +48,7 @@ class AddAccountScreen(Screen):
                     shutil.copy2("pass.db", self.auto_backup_location)
 
                 if self.remote_database:
-                    query = "INSERT INTO accounts VALUES({},{},{},{})".format(repr(site), repr(email), repr(username), repr(encrypted))
+                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(repr(_id), repr(site), repr(email), repr(username), repr(encrypted))
                     try:
                         Thread(target=self.manager.runRemoteDatabaseQuery(query)).start()
                     except:

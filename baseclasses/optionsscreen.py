@@ -423,7 +423,7 @@ class DatabaseOptionsScreen(Screen):
         elif local_data:
             def insert_data_to_remote_database():
                 for account in local_data:
-                    pg_cursor.execute("INSERT INTO accounts (site, email, username, password) VALUES(%s, %s, %s, %s)", account)
+                    pg_cursor.execute("INSERT INTO accounts VALUES(%s, %s, %s, %s, %s)", account)
                 pg_con.commit()
                 toast("Sync Completed")
 
@@ -433,7 +433,7 @@ class DatabaseOptionsScreen(Screen):
         elif remote_data:
             toast("Please wait until Sync is Complete")
             for account in remote_data:
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?)", account)
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
             self.con.commit()
             toast("Sync Completed")
 
