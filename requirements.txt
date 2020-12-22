@@ -1,0 +1,4 @@
+kivy
+https://github.com/ibrahimcetin/KivyMD/archive/master.zip
+cryptography
+psycopg2
