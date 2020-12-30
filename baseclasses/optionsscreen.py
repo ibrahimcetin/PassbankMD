@@ -2,6 +2,7 @@ import os
 import shutil
 import string
 import random
+import sqlite3
 from functools import partial
 from threading import Thread
 
@@ -211,6 +212,18 @@ class RightSwitch(MDSwitch, IRightBodyTouch):
 class RemoteDatabaseDialogContent(MDBoxLayout):
     pass
 
+class DatabasePasswordDialogContent(MDBoxLayout):
+    hint_text = StringProperty()
+
+    def showPasswordButton(self, button, field):
+        if button.icon == "eye-outline":
+            field.password = False
+            button.icon = "eye-off-outline"
+
+        elif button.icon == "eye-off-outline":
+            field.password = True
+            button.icon = "eye-outline"
+
 class DatabaseOptionsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -310,7 +323,7 @@ class DatabaseOptionsScreen(Screen):
             self.cursor.execute("UPDATE options SET auto_backup_location = ?", (path,))
             self.con.commit()
 
-            self.auto_backup_location = path
+            self.getOptions()
             self.setOptions()
 
         else:
@@ -342,34 +355,65 @@ class DatabaseOptionsScreen(Screen):
             self.manager.file_manager_open = True
 
     def backup_select_path(self, path):
-        if os.path.isdir(path):
-            self.exit_manager()
+        self.exit_manager()
 
-            shutil.copy2("pass.db", path)
-            toast("Database Successfully Backed Up")
-        else:
-            toast("Please Select a Directory")
+        shutil.copy2("pass.db", path)
+        toast("Database Backup was Successfully Created")
 
     def restore_select_path(self, path):
-        if os.path.isfile(path):
+        self.openRestoreDatabaseDialog(path)
+
+    def openRestoreDatabaseDialog(self, path):
+        self.dialog = MDDialog(
+            title="Password of the Database Backup",
+            type="custom",
+            content_cls=DatabasePasswordDialogContent(hint_text="Password of the Database Backup"),
+            buttons=[
+                MDFlatButton(
+                    text="Cancel", on_press=self.dismiss_dialog
+                ),
+                MDFlatButton(
+                    text="Okay", on_press=lambda x: self.checkBackupPassword(self.dialog.content_cls.ids.password_field.text, path)
+                ),
+            ],
+        )
+        self.dialog.open()
+
+    def checkBackupPassword(self, password, path):
+        backup_con = sqlite3.connect(path)
+        backup_cursor = backup_con.cursor()
+
+        backup_cursor.execute("SELECT master_password, salt FROM options")
+        encrypted, salt = map(bytes.fromhex, backup_cursor.fetchone())
+
+        cipher = self.manager.createCipher(password, salt)
+
+        try:
+            result = cipher.decrypt(encrypted[:16], encrypted[16:], None)
+            if result.decode() == password:
+                restore = True
+        except:
+            restore = False
+
+        if restore:
             self.exit_manager()
+            self.dismiss_dialog()
 
             shutil.copy2(path, "pass.db")
+
+            self.manager.cipher = cipher
             self.getOptions()
             self.setOptions()
 
             toast("Database Successfully Restored")
         else:
-            toast("Please Select a Database")
+            toast("Wrong Password")
 
     def remoteDatabaseSwitch(self, switch):
         self.cursor.execute("UPDATE options SET remote_database = ?", (int(switch.active),))
         self.con.commit()
 
     def remoteDatabaseDialog(self, list_item):
-        def dismiss_dialog(button):
-            self.dialog.dismiss()
-
         content = RemoteDatabaseDialogContent()
         content.ids.text_field.hint_text = list_item.text
 
@@ -377,7 +421,14 @@ class DatabaseOptionsScreen(Screen):
             title=f"{list_item.text}:",
             type="custom",
             content_cls=content,
-            buttons=[MDFlatButton(text="Cancel", on_press=dismiss_dialog), MDRaisedButton(text="Okay", on_press=lambda btn: self.updateRemoteDatabaseOption(list_item, content.ids.text_field.text))]
+            buttons=[
+                MDFlatButton(
+                    text="Cancel", on_press=self.dismiss_dialog
+                ),
+                MDRaisedButton(
+                    text="Okay", on_press=lambda btn: self.updateRemoteDatabaseOption(list_item, content.ids.text_field.text)
+                )
+            ]
         )
         self.dialog.open()
 
@@ -403,7 +454,9 @@ class DatabaseOptionsScreen(Screen):
 
     def syncDatabaseButton(self):
         if self.manager.pg_con is None:
-            self.manager.connectRemoteDatabase()
+            self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
+            pg_data = self.cursor.fetchone()
+            self.manager.connectRemoteDatabase(pg_data)
         pg_con = self.manager.pg_con
         pg_cursor = self.manager.pg_cursor
 
@@ -416,30 +469,77 @@ class DatabaseOptionsScreen(Screen):
         self.cursor.execute("SELECT * FROM accounts")
         local_data = self.cursor.fetchall()
 
+        pg_cursor.execute("SELECT master_password, salt FROM options")
+        remote_options = pg_cursor.fetchone()
+        self.cursor.execute("SELECT master_password, salt FROM options")
+        local_options = self.cursor.fetchone()
+
         if remote_data and local_data:
             toast("Please, Delete 'accounts' table in the PostgreSQL database")
             #TODO user can select remote or local database for sync
 
         elif local_data:
             def insert_data_to_remote_database():
+                pg_cursor.execute("INSERT INTO options VALUES(%s, %s)", local_options)
                 for account in local_data:
                     pg_cursor.execute("INSERT INTO accounts VALUES(%s, %s, %s, %s, %s)", account)
                 pg_con.commit()
+
                 toast("Sync Completed")
 
             toast("Please wait until Sync is Complete")
             Thread(target=insert_data_to_remote_database).start()
 
         elif remote_data:
-            toast("Please wait until Sync is Complete")
-            for account in remote_data:
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
-            self.con.commit()
-            toast("Sync Completed")
+            def syncWithRemoteDatabase(password):
+                encrypted, salt = map(bytes.fromhex, remote_options)
+                cipher = self.manager.createCipher(password, salt)
+
+                try:
+                    result = cipher.decrypt(encrypted[:16], encrypted[16:], None)
+                    if result.decode() == password:
+                        sync = True
+                except:
+                    sync = False
+
+                if sync:
+                    dialog.dismiss()
+                    toast("Please wait until Sync is Complete")
+
+                    self.cursor.execute("UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?", (*remote_options, *local_options))
+                    for account in remote_data:
+                        self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
+                    self.con.commit()
+
+                    self.manager.cipher = cipher
+
+                    toast("Sync Completed")
+                else:
+                    toast("Wrong Password")
+
+            dialog = MDDialog(
+                title="Password of the Remote Backup",
+                type="custom",
+                content_cls=DatabasePasswordDialogContent(hint_text="Password of the Remote Backup"),
+                buttons=[
+                    MDFlatButton(
+                        text="Cancel", on_press=lambda x: dialog.dismiss()
+                    ),
+                    MDFlatButton(
+                        text="Okay", on_press=lambda x: syncWithRemoteDatabase(dialog.content_cls.ids.password_field.text)
+                    ),
+                ],
+            )
+            dialog.open()
+
+
 
     def exit_manager(self, *args):
         self.file_manager.close()
         self.manager.file_manager_open = False
+
+    def dismiss_dialog(self, btn=None):
+        self.dialog.dismiss()
 
     def goBackBtn(self):
         self.manager.setOptionsScreen()
@@ -472,26 +572,6 @@ class SecurityOptionsScreen(Screen):
         self.ids.fast_login_switch.active = self.fast_login
         self.ids.auto_exit_switch.active = self.auto_exit
 
-    def changeMasterPasswordButton(self):
-        self.dialog = MDDialog(
-            title="Change Master Password?",
-            text="By changing the master password you will not be able to restore database backups that were created with the current password.",
-            buttons=[
-                MDFlatButton(
-                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
-                ),
-                MDFlatButton(
-                    text="Accept", text_color=self.theme_cls.primary_color, on_press=self.changeMasterPasswordFunction
-                ),
-            ],
-        )
-        self.dialog.ids.text.text_color = [0,0,0]
-        self.dialog.open()
-
-    def changeMasterPasswordFunction(self, button):
-        self.manager.setChangeMasterPasswordScreen()
-        self.closeDialog(None)
-
     def fastLoginFunction(self, active):
         status = 1 if active else 0
 
@@ -504,9 +584,6 @@ class SecurityOptionsScreen(Screen):
         self.cursor.execute("UPDATE options SET auto_exit = ?", (status,))
         self.con.commit()
 
-    def closeDialog(self, button):
-        self.dialog.dismiss()
-
     def goBackBtn(self):
         self.manager.setOptionsScreen()
 
@@ -518,14 +595,44 @@ class ChangeMasterPasswordScreen(Screen):
         self.cursor = kwargs.get("cursor")
         self.cipher = kwargs.get("cipher")
 
-        self.password = None
-        self.getPasswordFromDB()
+        self.getOptions()
 
-    def getPasswordFromDB(self):
-        self.cursor.execute("SELECT master_password FROM options")
-        encrypted = self.cursor.fetchone()[0]
+    def getOptions(self):
+        self.cursor.execute("SELECT master_password, remote_database FROM options")
+        data = self.cursor.fetchone()
 
-        self.password = self.cipher.decrypt(encrypted)
+        encrypted = bytes.fromhex(data[0])
+        self.password = self.cipher.decrypt(encrypted[:16], encrypted[16:], None).decode()
+
+        self.remote_database = data[1]
+
+    def initCipher(self, password):
+        salt = os.urandom(32)
+        cipher = self.manager.createCipher(password, salt)
+
+        nonce = os.urandom(16)
+        encrypted = nonce + cipher.encrypt(nonce, password.encode(), None)
+
+        return encrypted, salt
+
+    def recryptPasswords(self):
+        old_cipher = self.cipher
+        new_cipher = self.manager.cipher
+
+        self.cursor.execute("SELECT id, password FROM accounts")
+        accounts = self.cursor.fetchall()
+
+        for account in accounts:
+            old_encrypted = bytes.fromhex(account[1])
+            password = old_cipher.decrypt(old_encrypted[:16], old_encrypted[16:], None).decode()
+
+            nonce = os.urandom(16)
+            new_encrypted = nonce + new_cipher.encrypt(nonce, password.encode(), None)
+
+            self.cursor.execute("UPDATE accounts SET password = ? WHERE id = ?", (new_encrypted.hex(), account[0]))
+        self.con.commit()
+
+        self.cipher = new_cipher
 
     def updateButton(self, current_password, new_password, confirm_new_password):
         if current_password == self.password:
@@ -533,13 +640,20 @@ class ChangeMasterPasswordScreen(Screen):
                 toast("Current password and new password cannot be same!")
 
             elif new_password == confirm_new_password:
-                encrypted = self.cipher.encrypt(new_password)
+                encrypted, salt = self.initCipher(new_password)
 
-                self.cursor.execute("UPDATE options SET master_password = ?", (encrypted,))
+                self.cursor.execute("UPDATE options SET master_password = ?, salt = ?", (encrypted.hex(), salt.hex()))
                 self.con.commit()
 
-                toast("Master Password Successfully Changed")
+                self.manager.createCipher(new_password, salt)
+                self.recryptPasswords()
+
                 self.manager.setSecurityOptionsScreen()
+                toast("Master Password Successfully Changed")
+
+                if self.remote_database:
+                    query = "UPDATE options SET master_password = {}, salt = {}".format(repr(encrypted.hex), repr(salt.hex()))
+                    self.manager.runRemoteDatabaseQuery(query)
 
             else:
                 instance = self.ids.confirm_new_password_field

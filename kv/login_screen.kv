@@ -30,7 +30,7 @@
 
                 helper_text_mode: "on_error"
                 on_text_validate: root.loginButton(self) # run when pressing enter
-                on_text: root.fastLogin(self, self.text)
+                on_text: root.fastLogin(self, self.text) if root.fast_login else None
 
             MDIconButton:
                 id: show_password_button

@@ -1,3 +1,4 @@
+import os
 import string
 import random
 import shutil
@@ -104,7 +105,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.remote_database = kwargs.get("remote_database")
 
     def copyPassword(self):
-        password = self.cipher.decrypt(self.encrypted)
+        password = self.cipher.decrypt(self.encrypted[:16], self.encrypted[16:], None).decode()
         Clipboard.copy(password)
 
         toast(f"{self.site} Password Copied")
@@ -153,9 +154,10 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         if new_password:
             if new_password == confirm_new_password:
-                encrypted = self.cipher.encrypt(new_password)
+                nonce = os.urandom(16)
+                self.encrypted = nonce + self.cipher.encrypt(nonce, new_password.encode(), None)
 
-                self.cursor.execute("UPDATE accounts SET password=? WHERE id=?",(encrypted, self._id))
+                self.cursor.execute("UPDATE accounts SET password=? WHERE id=?", (self.encrypted.hex(), self._id))
                 self.con.commit()
 
                 #TODO clear new password fields after password changed
@@ -172,16 +174,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
             if self.remote_database:
                 if new_password and new_password == confirm_new_password:
                     encrypted = self.cipher.encrypt(new_password)
-                    query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(encrypted), repr(self._id))
+                    query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(encrypted.hex()), repr(self._id))
                 else:
                     query = "UPDATE accounts SET site={}, email={}, username={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(self._id))
 
-                try:
-                    Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
-                except:
-                    self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
-                    self.con.commit()
-                    self.main_screen.manager.internet_connection = False
+                self.main_screen.manager.runRemoteDatabaseQuery(query)
 
         if self.auto_backup and len(changed) > 0: # auto backup
             shutil.copy2("pass.db", self.auto_backup_location)
@@ -220,15 +217,10 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         if self.remote_database:
             query = "DELETE FROM accounts WHERE id={}".format(repr(self._id),)
-            try:
-                Thread(target=self.main_screen.manager.runRemoteDatabaseQuery(query)).start()
-            except:
-                self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
-                self.con.commit()
-                self.main_screen.manager.internet_connection = False
+            self.main_screen.manager.runRemoteDatabaseQuery(query)
 
     def showPassword(self):
-        password = self.cipher.decrypt(self.encrypted)
+        password = self.cipher.decrypt(self.encrypted[:16], self.encrypted[16:], None).decode()
 
         self.dialog = MDDialog(
             title=f"{self.site} Password",
@@ -318,13 +310,7 @@ class MainScreen(Screen):
         self.internet_connection = kwargs.get("internet_connection")
 
         if self.pg_con is not None:
-            self.cursor.execute("SELECT * FROM offline_queries")
-            queries = self.cursor.fetchall()
-
-            self.cursor.execute("SELECT * FROM accounts")
-            local_data = self.cursor.fetchall()
-
-            Thread(target=self.sync, args=(queries, local_data)).start()
+            self.initSync()
 
         self.initUI()
 
@@ -336,7 +322,7 @@ class MainScreen(Screen):
             self.cursor.execute("DELETE FROM offline_queries WHERE id=?", (_id,))
             self.con.commit()
 
-    def syncDatabases(self, local_data):
+    def syncDatabases(self, local_data, local_options):
         def fetch_remote_data():
             self.pg_cursor.execute("SELECT * FROM accounts")
             return self.pg_cursor.fetchall()
@@ -348,6 +334,11 @@ class MainScreen(Screen):
         def local_diff():
             remote_data = fetch_remote_data()
             return [data for data in local_data if data not in remote_data]
+
+        self.pg_cursor.execute("SELECT master_password, salt FROM options")
+        remote_options = self.pg_cursor.fetchall()[0]
+        if remote_options and remote_options != local_options:
+            self.cursor.execute("UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?", (*remote_options, *local_options))
 
         pg_data = remote_diff()
         for account in pg_data:
@@ -366,15 +357,31 @@ class MainScreen(Screen):
 
         self.con.commit()
 
-    def sync(self, queries, local_data):
+    def sync(self, queries, local_data, local_options):
         try:
-            self.offlineQueries(queries)
-            self.syncDatabases(local_data)
+            self.pg_cursor.execute("SELECT master_password, salt FROM options")
+            remote_options = self.pg_cursor.fetchone()
 
-            self.initUI()
-            self.internet_connection = True
+            if remote_options == local_options:
+                self.offlineQueries(queries)
+                self.syncDatabases(local_data, local_options)
+
+                self.initUI()
+                self.internet_connection = True
         except:
             self.internet_connection = False
+
+    def initSync(self):
+        self.cursor.execute("SELECT * FROM offline_queries ORDER BY id ASC")
+        queries = self.cursor.fetchall()
+
+        self.cursor.execute("SELECT * FROM accounts")
+        local_data = self.cursor.fetchall()
+
+        self.cursor.execute("SELECT master_password, salt FROM options")
+        local_options = self.cursor.fetchall()[0]
+
+        Thread(target=self.sync, args=(queries, local_data, local_options)).start()
 
     def getOptions(self):
         self.cursor.execute("SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, remote_database, password_length, password_suggestion_options FROM options")
@@ -390,6 +397,8 @@ class MainScreen(Screen):
 
         self.password_length = options[6]
         self.password_suggestion_options = [bool(int(o)) for o in options[7].split(',')]
+
+        if self.manager: self.cipher = self.manager.cipher # for master password update
 
     def getAccounts(self):
         if self.sort_by == "a_to_z":
@@ -467,7 +476,7 @@ class MainScreen(Screen):
             site = account[1]
             email = account[2]
             username = account[3]
-            encrypted = account[4]
+            encrypted = bytes.fromhex(account[4])
 
             if search:
                 if search_text.lower() in site.lower():

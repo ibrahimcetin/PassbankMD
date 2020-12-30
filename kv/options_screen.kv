@@ -114,6 +114,21 @@
 
     Widget:
 
+<DatabasePasswordDialogContent>:
+    size_hint_y: None
+    height: "60dp"
+
+    MDTextField:
+        id: password_field
+        password: True
+        hint_text: root.hint_text
+        pos_hint: {"center_y": .5}
+
+    MDIconButton:
+        id: show_password_button
+        icon: "eye-outline"
+        on_press: root.showPasswordButton(self, password_field)
+
 <DatabaseOptionsScreen>:
     MDToolbar:
         title: "Database"
@@ -256,7 +271,7 @@
             MDList:
                 OneLineListItem:
                     text: "Change Master Password"
-                    on_press: root.changeMasterPasswordButton()
+                    on_press: root.manager.setChangeMasterPasswordScreen()
 
                 OneLineListItemWithContainer:
                     text: "Fast Login"

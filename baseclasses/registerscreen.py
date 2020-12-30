@@ -16,20 +16,29 @@ class RegisterScreen(Screen):
 
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
-        self.cipher = kwargs.get("cipher")
+
+    def initCipher(self, password):
+        salt = os.urandom(32)
+        cipher = self.manager.createCipher(password, salt)
+
+        nonce = os.urandom(16)
+        encrypted = nonce + cipher.encrypt(nonce, password.encode(), None)
+
+        return encrypted, salt
 
     def registerButton(self, password_field, confirm_password_field):
         if not password_field.text:
             self.initFieldError(password_field)
 
         elif password_field.text == confirm_password_field.text:
-            encrypted = self.cipher.encrypt(password_field.text)
+            encrypted, salt = self.initCipher(password_field.text)
 
             path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
 
-            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (encrypted, "a_to_z", "1,1", "1,1", 0, path, 0, None, None, None, None, None, 1, 1, 15, "1,1,1,1"))
+            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (encrypted.hex(), salt.hex(), "a_to_z", "1,1", "1,1", 0, path, 0, None, None, None, None, None, 1, 1, 15, "1,1,1,1"))
             self.con.commit()
 
+            self.manager.getCipher(password_field.text)
             self.manager.setMainScreen()
 
             snackbar = Snackbar(

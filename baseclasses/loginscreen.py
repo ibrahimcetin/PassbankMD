@@ -9,26 +9,24 @@ class LoginScreen(Screen):
         super().__init__(name=kwargs.get("name"))
 
         self.cursor = kwargs.get("cursor")
-        self.cipher = kwargs.get("cipher")
 
         self.theme_cls = ThemeManager()
 
         self.getOptions()
 
     def getOptions(self):
-        self.cursor.execute("SELECT master_password, animation_options, fast_login FROM options")
+        self.cursor.execute("SELECT animation_options, fast_login FROM options")
         options = self.cursor.fetchone()
 
-        self.master_password = self.cipher.decrypt(options[0])
-        self.transition_animation = bool(int(options[1][0]))
-        self.fast_login = options[2]
+        self.transition_animation = bool(int(options[0][0]))
+        self.fast_login = bool(options[1])
 
     def loginButton(self, password_field):
         if not password_field.text:
             password_field.helper_text = "Please enter password"
             self.initFieldError(password_field)
 
-        elif self.master_password == password_field.text:
+        elif self.manager.getCipher(password_field.text):
             self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
             self.manager.setMainScreen()
 
@@ -52,13 +50,9 @@ class LoginScreen(Screen):
         else:
             self.closeFieldError(instance)
 
-            if (text == self.master_password) and (self.fast_login == 1):
-                self.fastLoginFunction(instance)
-
-    def fastLoginFunction(self, password_field):
-        if self.master_password == password_field.text:
-            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
-            self.manager.setMainScreen()
+            if self.manager.getCipher(instance.text):
+                self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
+                self.manager.setMainScreen()
 
     def initFieldError(self, instance):
         instance.error = True

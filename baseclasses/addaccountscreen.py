@@ -1,6 +1,6 @@
+import os
 import shutil
 import uuid
-from threading import Thread
 
 from kivy.uix.screenmanager import Screen
 from kivy.animation import Animation
@@ -35,9 +35,11 @@ class AddAccountScreen(Screen):
 
             else:
                 _id = uuid.uuid4().hex
-                encrypted = self.cipher.encrypt(password)
 
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)",(_id, site, email, username, encrypted))
+                nonce = os.urandom(16)
+                encrypted = nonce + self.cipher.encrypt(nonce, password.encode(), None)
+
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)",(_id, site, email, username, encrypted.hex()))
                 self.con.commit()
 
                 toast(f"{site} Account Added")
@@ -48,13 +50,8 @@ class AddAccountScreen(Screen):
                     shutil.copy2("pass.db", self.auto_backup_location)
 
                 if self.remote_database:
-                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(repr(_id), repr(site), repr(email), repr(username), repr(encrypted))
-                    try:
-                        Thread(target=self.manager.runRemoteDatabaseQuery(query)).start()
-                    except:
-                        self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
-                        self.con.commit()
-                        self.manager.internet_connection = False
+                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(repr(_id), repr(site), repr(email), repr(username), repr(encrypted.hex()))
+                    self.manager.runRemoteDatabaseQuery(query)
 
         else:
             self.initFieldError(confirm_password_field)

@@ -14,7 +14,10 @@ from baseclasses.mainscreen import MainScreen
 from baseclasses.addaccountscreen import AddAccountScreen
 from baseclasses.optionsscreen import OptionsScreen, AppearanceOptionsScreen, DatabaseOptionsScreen, SecurityOptionsScreen, ChangeMasterPasswordScreen, PasswordSuggestionOptionsScreen
 
-from pyaes import AESCipher
+import cryptography
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.backends import default_backend
 
 
 class Manager(ScreenManager):
@@ -66,16 +69,13 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
         self.cursor.execute("CREATE TABLE IF NOT EXISTS offline_queries (id INTEGER PRIMARY KEY, query TEXT)")
 
-    def connectRemoteDatabase(self):
+    def connectRemoteDatabase(self, pg_data):
         self.pg_con = None
         self.pg_cursor = None
         self.internet_connection = True
-
-        self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
-        pg_data = self.cursor.fetchone()
 
         def connect():
             try:
@@ -83,6 +83,7 @@ class Manager(ScreenManager):
                 self.pg_cursor = self.pg_con.cursor()
 
                 self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
+                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT)")
                 self.internet_connection = True
             except:
                 self.internet_connection = False
@@ -94,15 +95,46 @@ class Manager(ScreenManager):
                 t.join()
 
     def runRemoteDatabaseQuery(self, query):
-        self.pg_cursor.execute(query)
-        self.pg_con.commit()
-        self.internet_connection = True
+        def run_query(query):
+            self.pg_cursor.execute(query)
+            self.pg_con.commit()
 
-    def getCipher(self):
-        key = "F:NnQw}c(06BdclrX8_mJbGq]i#m5&hw"
-        iv = "lA%u]-hF&GRx{P`s"
+        try:
+            Thread(target=run_query(query)).start()
+            self.internet_connection = True
+        except:
+            self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+            self.con.commit()
+            self.internet_connection = False
 
-        self.cipher = AESCipher(key, iv)
+    def createCipher(self, password, salt):
+        kdf = Scrypt(
+            salt=salt,
+            length=32,
+            n=2**14,
+            r=2**3,
+            p=1,
+            backend=default_backend()
+        )
+
+        key = kdf.derive(password.encode())
+        cipher = AESGCM(key)
+
+        return cipher
+
+    def getCipher(self, password):
+        self.cursor.execute("SELECT master_password, salt FROM options")
+        encrypted, salt = map(bytes.fromhex, self.cursor.fetchone())
+
+        cipher = self.createCipher(password, salt)
+
+        try:
+            result = cipher.decrypt(encrypted[:16], encrypted[16:], None)
+            if result.decode() == password:
+                self.cipher = cipher
+                return True
+        except cryptography.exceptions.InvalidTag:
+            return False
 
     def checkMasterPasswordExists(self):
         self.cursor.execute("SELECT master_password FROM options")
@@ -112,8 +144,11 @@ class Manager(ScreenManager):
 
     def setStartScreen(self):
         self.connectDatabase()
-        Thread(target=self.connectRemoteDatabase).start() #TODO improve this
-        self.getCipher()
+
+        self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
+        pg_data = self.cursor.fetchone()
+        Thread(target=self.connectRemoteDatabase, args=(pg_data,)).start() #TODO improve this
+
         self.checkMasterPasswordExists()
 
         if self.master_password_exists:
@@ -126,7 +161,7 @@ class Manager(ScreenManager):
 
         Builder.load_file("kv/register_screen.kv")
 
-        self.register_screen = RegisterScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="register_screen")
+        self.register_screen = RegisterScreen(con=self.con, cursor=self.cursor, name="register_screen")
         self.add_widget(self.register_screen)
         self.current = "register_screen"
 
@@ -141,7 +176,7 @@ class Manager(ScreenManager):
             Builder.load_file("kv/login_screen.kv") # for load once
 
         # always run in this method
-        self.login_screen = LoginScreen(cursor=self.cursor, cipher=self.cipher, name="login_screen")
+        self.login_screen = LoginScreen(cursor=self.cursor, name="login_screen")
         self.add_widget(self.login_screen)
         self.current = "login_screen"
 
