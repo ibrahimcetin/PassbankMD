@@ -13,15 +13,14 @@ block_cipher = None
 a = Analysis(['main.py'],
              pathex=[path],
              binaries=[],
-             datas=[("libs\\kv\\", "libs\\kv\\"), ("assets\\fonts\\", "assets\\fonts\\")],
+             datas=[("libs\\kv\\", "libs\\kv\\"), ("libs\\kivy_garden\\", "libs\\kivy_garden\\"), ("assets\\fonts\\", "assets\\fonts\\")],
              hiddenimports=[
-                "baseclasses.addaccountscreen.py",
-                "baseclasses.loginscreen.py",
-                "baseclasses.mainscreen.py",
-                "baseclasses.manager.py",
-                "baseclasses.optionsscreen.py",
-                "baseclasses.registerscreen.py",
-                "pyaes.py"
+                "libs.baseclass.addaccountscreen.py",
+                "libs.baseclass.loginscreen.py",
+                "libs.baseclass.mainscreen.py",
+                "libs.baseclass.manager.py",
+                "libs.baseclass.optionsscreen.py",
+                "libs.baseclass.registerscreen.py"
              ],
              hookspath=[kivymd_hooks_path],
              runtime_hooks=[],

@@ -26,6 +26,8 @@ from kivymd.uix.button import MDRaisedButton
 from kivymd.icon_definitions import md_icons
 from kivymd.toast import toast
 
+from ..kivy_garden.qrcode import QRCodeWidget
+
 
 class RVOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
@@ -265,6 +267,32 @@ class ContentCustomBottomSheet(MDBoxLayout):
             buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
+        self.dialog.open()
+
+    def showQRCode(self):
+        password = self.cipher.decrypt(
+            self.encrypted[:16], self.encrypted[16:], None
+        ).decode()
+
+        layout = MDBoxLayout(size_hint_y=None, height=dp(120))
+        layout.add_widget(
+            QRCodeWidget(
+                data=password,
+                show_border=False,
+                background_color=[
+                    0.9607843137254902,
+                    0.9607843137254902,
+                    0.9607843137254902,
+                    1.0,
+                ],
+            )
+        )
+        self.dialog = MDDialog(
+            title="QR Code",
+            type="custom",
+            content_cls=layout,
+            buttons=[MDFlatButton(text="Okay", on_press=self.closeDialog)],
+        )
         self.dialog.open()
 
     def showNewPasswordButton(self, button, field_1, field_2):
