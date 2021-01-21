@@ -39,25 +39,36 @@ class AddAccountScreen(Screen):
                 nonce = os.urandom(16)
                 encrypted = nonce + self.cipher.encrypt(nonce, password.encode(), None)
 
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)",(_id, site, email, username, encrypted.hex()))
+                self.cursor.execute(
+                    "INSERT INTO accounts VALUES(?,?,?,?,?)",
+                    (_id, site, email, username, encrypted.hex()),
+                )
                 self.con.commit()
 
                 toast(f"{site} Account Added")
 
-                self.manager.setMainScreen() # refresh main screen
+                self.manager.setMainScreen()  # refresh main screen
 
-                if self.auto_backup: # auto backup
+                if self.auto_backup:  # auto backup
                     shutil.copy2("pass.db", self.auto_backup_location)
 
                 if self.remote_database:
-                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(repr(_id), repr(site), repr(email), repr(username), repr(encrypted.hex()))
+                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(
+                        repr(_id),
+                        repr(site),
+                        repr(email),
+                        repr(username),
+                        repr(encrypted.hex()),
+                    )
                     self.manager.runRemoteDatabaseQuery(query)
 
         else:
             self.initFieldError(confirm_password_field)
 
     def getOptions(self):
-        self.cursor.execute("SELECT auto_backup, auto_backup_location, remote_database FROM options")
+        self.cursor.execute(
+            "SELECT auto_backup, auto_backup_location, remote_database FROM options"
+        )
         options = self.cursor.fetchone()
 
         self.auto_backup = bool(options[0])
@@ -98,20 +109,20 @@ class AddAccountScreen(Screen):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(
-            duration=0.2, _current_error_color=instance.error_color
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=instance.error_color).start(
+            instance
+        )
         Animation(
             _current_right_lbl_color=instance.error_color,
             _current_hint_text_color=instance.error_color,
             _current_line_color=instance.error_color,
-            _line_width=instance.width, duration=0.2, t="out_quad"
+            _line_width=instance.width,
+            duration=0.2,
+            t="out_quad",
         ).start(instance)
 
     def closeFieldError(self, instance):
-        Animation(
-            duration=0.2, _current_error_color=(0, 0, 0, 0)
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
         Animation(
             duration=0.2,
             _current_line_color=instance.line_color_focus,

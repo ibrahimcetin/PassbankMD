@@ -12,7 +12,15 @@ from kivy.properties import StringProperty
 from kivy.animation import Animation
 from kivy.core.clipboard import Clipboard
 
-from kivymd.uix.list import OneLineIconListItem, OneLineListItem, TwoLineListItem, OneLineAvatarIconListItem, ILeftBodyTouch, IRightBodyTouch, ContainerSupport
+from kivymd.uix.list import (
+    OneLineIconListItem,
+    OneLineListItem,
+    TwoLineListItem,
+    OneLineAvatarIconListItem,
+    ILeftBodyTouch,
+    IRightBodyTouch,
+    ContainerSupport,
+)
 from kivymd.uix.selectioncontrol import MDCheckbox, MDSwitch
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -25,6 +33,7 @@ from kivymd.theming import ThemeManager
 class CustomOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
 
+
 class OptionsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -32,10 +41,18 @@ class OptionsScreen(Screen):
         self.initUI()
 
     def initUI(self):
-        data = [("Appearance", "format-paint"), ("Database", "database"), ("Security", "security"), ("Password Suggestion", "key"), ("About", "information-outline")]
+        data = [
+            ("Appearance", "format-paint"),
+            ("Database", "database"),
+            ("Security", "security"),
+            ("Password Suggestion", "key"),
+            ("About", "information-outline"),
+        ]
 
         for text, icon in data:
-            self.ids.container.add_widget(CustomOneLineIconListItem(text=text, icon=icon, on_press=self.optionBtn))
+            self.ids.container.add_widget(
+                CustomOneLineIconListItem(text=text, icon=icon, on_press=self.optionBtn)
+            )
 
     def optionBtn(self, button):
         text = button.text
@@ -70,8 +87,10 @@ class SortSelectionItem(OneLineAvatarIconListItem):
         self.text = kwargs.get("text")
         self.ids.check.active = kwargs.get("active")
 
+
 class LeftCheckbox(MDCheckbox, ILeftBodyTouch):
     pass
+
 
 class SubtitlesSelectionItem(OneLineAvatarIconListItem):
     def __init__(self, **kwargs):
@@ -80,11 +99,19 @@ class SubtitlesSelectionItem(OneLineAvatarIconListItem):
         self.text = kwargs.get("text")
         self.ids.check.active = kwargs.get("active")
 
+
 class AppearanceOptionsScreen(Screen):
-    sort_options = {"a_to_z": "Alphabetically (A to Z)",
-                    "z_to_a": "Alphabetically (Z to A)",
-                    "first_to_last": "Date (First to Last)",
-                    "last_to_first": "Date (Last to First)"}
+    sort_options = {
+        "a_to_z": "Alphabetically (A to Z)",
+        "z_to_a": "Alphabetically (Z to A)",
+        "first_to_last": "Date (First to Last)",
+        "last_to_first": "Date (Last to First)",
+    }
+
+    dialog = None
+
+    sort_by = None
+    list_subtitles_options = None
 
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -98,7 +125,9 @@ class AppearanceOptionsScreen(Screen):
         self.setOptions()
 
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options FROM options")
+        self.cursor.execute(
+            "SELECT sort_by, list_subtitles, animation_options FROM options"
+        )
         options = self.cursor.fetchall()[0]
 
         self.sort_by = options[0]
@@ -115,7 +144,7 @@ class AppearanceOptionsScreen(Screen):
 
     def sortByButton(self):
         def is_current(code):
-            return (code == self.sort_by)
+            return code == self.sort_by
 
         items = []
         SortSelectionItem.screen = self
@@ -128,14 +157,18 @@ class AppearanceOptionsScreen(Screen):
             items=items,
             buttons=[
                 MDFlatButton(
-                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
+                    text="Cancel",
+                    text_color=self.theme_cls.primary_color,
+                    on_press=self.closeDialog,
                 ),
             ],
         )
         self.dialog.open()
 
     def setSortByOption(self, text):
-        self.sort_by = list(self.sort_options.keys())[list(self.sort_options.values()).index(text)]
+        self.sort_by = list(self.sort_options.keys())[
+            list(self.sort_options.values()).index(text)
+        ]
 
         self.cursor.execute("UPDATE options SET sort_by = ?", (self.sort_by,))
         self.con.commit()
@@ -149,22 +182,28 @@ class AppearanceOptionsScreen(Screen):
             title="List Subtitles",
             type="confirmation",
             items=[
-                SubtitlesSelectionItem(text="EMail", active=self.list_subtitles_options[0]),
-                SubtitlesSelectionItem(text="Username", active=self.list_subtitles_options[1])
+                SubtitlesSelectionItem(
+                    text="EMail", active=self.list_subtitles_options[0]
+                ),
+                SubtitlesSelectionItem(
+                    text="Username", active=self.list_subtitles_options[1]
+                ),
             ],
             buttons=[
                 MDFlatButton(
-                    text="Cancel", text_color=self.theme_cls.primary_color, on_press=self.closeDialog
+                    text="Cancel",
+                    text_color=self.theme_cls.primary_color,
+                    on_press=self.closeDialog,
                 ),
-                MDRaisedButton(
-                    text="Okay", on_press=self.getChecked
-                ),
+                MDRaisedButton(text="Okay", on_press=self.getChecked),
             ],
         )
         self.dialog.open()
 
     def getChecked(self, button):
-        self.list_subtitles_options = [item.ids.check.active for item in self.dialog.items]
+        self.list_subtitles_options = [
+            item.ids.check.active for item in self.dialog.items
+        ]
         new_status = ",".join([str(int(b)) for b in self.list_subtitles_options])
 
         self.cursor.execute("UPDATE options SET list_subtitles = ?", (new_status,))
@@ -203,14 +242,17 @@ class AppearanceOptionsScreen(Screen):
 
 
 class TwoLineListItemWithContainer(ContainerSupport, TwoLineListItem):
-    def start_ripple(self): # disable ripple behavior
+    def start_ripple(self):  # disable ripple behavior
         pass
+
 
 class RightSwitch(MDSwitch, IRightBodyTouch):
     pass
 
+
 class RemoteDatabaseDialogContent(MDBoxLayout):
     pass
+
 
 class DatabasePasswordDialogContent(MDBoxLayout):
     hint_text = StringProperty()
@@ -224,6 +266,7 @@ class DatabasePasswordDialogContent(MDBoxLayout):
             field.password = True
             button.icon = "eye-outline"
 
+
 class DatabaseOptionsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -236,7 +279,9 @@ class DatabaseOptionsScreen(Screen):
         self.initUI()
 
     def getOptions(self):
-        self.cursor.execute("SELECT auto_backup, auto_backup_location, remote_database, db_pass, db_user, db_name, db_port, db_host FROM options")
+        self.cursor.execute(
+            "SELECT auto_backup, auto_backup_location, remote_database, db_pass, db_user, db_name, db_port, db_host FROM options"
+        )
         options = self.cursor.fetchall()[0]
 
         self.auto_backup = bool(options[0])
@@ -253,29 +298,56 @@ class DatabaseOptionsScreen(Screen):
         self.ids.remote_database_switch.active = self.remote_database
 
         if all(self.pg_info):
-            for list_item, description in zip(self.ids.remote_database_list.children, self.pg_info):
-                list_item.secondary_text = description if list_item.text != "Password" else "**********"
+            for list_item, description in zip(
+                self.ids.remote_database_list.children, self.pg_info
+            ):
+                list_item.secondary_text = (
+                    description if list_item.text != "Password" else "**********"
+                )
 
     def initUI(self):
-        data = [("Backup Database", "Backup encrypted database"), ("Restore Database", "Restore encrypted database")]
+        data = [
+            ("Backup Database", "Backup encrypted database"),
+            ("Restore Database", "Restore encrypted database"),
+        ]
         for text, description in data:
-            self.ids.database_container.add_widget(TwoLineListItem(text=text, secondary_text=description, on_press=self.checkPlatform))
+            self.ids.database_container.add_widget(
+                TwoLineListItem(
+                    text=text, secondary_text=description, on_press=self.checkPlatform
+                )
+            )
 
     def checkPlatform(self, button):
         if platform == "android":
-            from android.permissions import check_permission, request_permissions, Permission
+            from android.permissions import (
+                check_permission,
+                request_permissions,
+                Permission,
+            )
 
-            if check_permission('android.permission.WRITE_EXTERNAL_STORAGE'):
+            if check_permission("android.permission.WRITE_EXTERNAL_STORAGE"):
                 if isinstance(button, MDSwitch):
                     self.autoBackupFunction(active=button.active)
                 else:
                     self.databaseFunctions(text=button.text)
             else:
                 if isinstance(button, MDSwitch):
-                    if button.active: # request_permissions only run when switch active
-                        request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], partial(self.autoBackupFunction, active=button.active))
+                    if button.active:  # request_permissions only run when switch active
+                        request_permissions(
+                            [
+                                Permission.READ_EXTERNAL_STORAGE,
+                                Permission.WRITE_EXTERNAL_STORAGE,
+                            ],
+                            partial(self.autoBackupFunction, active=button.active),
+                        )
                 else:
-                    request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], partial(self.databaseFunctions, text=button.text))
+                    request_permissions(
+                        [
+                            Permission.READ_EXTERNAL_STORAGE,
+                            Permission.WRITE_EXTERNAL_STORAGE,
+                        ],
+                        partial(self.databaseFunctions, text=button.text),
+                    )
 
         else:
             if isinstance(button, MDSwitch):
@@ -283,12 +355,14 @@ class DatabaseOptionsScreen(Screen):
             else:
                 self.databaseFunctions(text=button.text)
 
-    def autoBackupFunction(self, permissions=None, grant_result=[True, True], active=False):
+    def autoBackupFunction(
+        self, permissions=None, grant_result=[True, True], active=False
+    ):
         if not grant_result == [True, True]:
             self.auto_backup = 0
-            self.ids.switch.active = False # this line run switch's on_active method
-                                           # that's why if request_permissions is not run only while switch is active,
-                                           # request_permissions are run twice
+            self.ids.switch.active = False  # this line run switch's on_active method
+            # that's why if request_permissions is not run only while switch is active,
+            # request_permissions are run twice
 
             self.cursor.execute("UPDATE options SET auto_backup = 0")
             self.con.commit()
@@ -308,7 +382,7 @@ class DatabaseOptionsScreen(Screen):
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager,
             select_path=self.auto_backup_location_select_path,
-            search="dirs"
+            search="dirs",
         )
 
         self.file_manager.show(self.file_manager_start_path)
@@ -338,7 +412,7 @@ class DatabaseOptionsScreen(Screen):
             self.file_manager = MDFileManager(
                 exit_manager=self.exit_manager,
                 select_path=self.backup_select_path,
-                search="dirs"
+                search="dirs",
             )
 
             self.file_manager.show(self.file_manager_start_path)
@@ -348,7 +422,7 @@ class DatabaseOptionsScreen(Screen):
             self.file_manager = MDFileManager(
                 exit_manager=self.exit_manager,
                 select_path=self.restore_select_path,
-                ext=[".db"]
+                ext=[".db"],
             )
 
             self.file_manager.show(self.file_manager_start_path)
@@ -367,13 +441,16 @@ class DatabaseOptionsScreen(Screen):
         self.dialog = MDDialog(
             title="Password of the Database Backup",
             type="custom",
-            content_cls=DatabasePasswordDialogContent(hint_text="Password of the Database Backup"),
+            content_cls=DatabasePasswordDialogContent(
+                hint_text="Password of the Database Backup"
+            ),
             buttons=[
+                MDFlatButton(text="Cancel", on_press=self.dismiss_dialog),
                 MDFlatButton(
-                    text="Cancel", on_press=self.dismiss_dialog
-                ),
-                MDFlatButton(
-                    text="Okay", on_press=lambda x: self.checkBackupPassword(self.dialog.content_cls.ids.password_field.text, path)
+                    text="Okay",
+                    on_press=lambda x: self.checkBackupPassword(
+                        self.dialog.content_cls.ids.password_field.text, path
+                    ),
                 ),
             ],
         )
@@ -410,7 +487,9 @@ class DatabaseOptionsScreen(Screen):
             toast("Wrong Password")
 
     def remoteDatabaseSwitch(self, switch):
-        self.cursor.execute("UPDATE options SET remote_database = ?", (int(switch.active),))
+        self.cursor.execute(
+            "UPDATE options SET remote_database = ?", (int(switch.active),)
+        )
         self.con.commit()
 
     def remoteDatabaseDialog(self, list_item):
@@ -422,21 +501,24 @@ class DatabaseOptionsScreen(Screen):
             type="custom",
             content_cls=content,
             buttons=[
-                MDFlatButton(
-                    text="Cancel", on_press=self.dismiss_dialog
-                ),
+                MDFlatButton(text="Cancel", on_press=self.dismiss_dialog),
                 MDRaisedButton(
-                    text="Okay", on_press=lambda btn: self.updateRemoteDatabaseOption(list_item, content.ids.text_field.text)
-                )
-            ]
+                    text="Okay",
+                    on_press=lambda btn: self.updateRemoteDatabaseOption(
+                        list_item, content.ids.text_field.text
+                    ),
+                ),
+            ],
         )
         self.dialog.open()
 
     def updateRemoteDatabaseOption(self, list_item, value):
-        if value.isspace() or value == '':
+        if value.isspace() or value == "":
             pass
         else:
-            list_item.secondary_text = value if list_item.text != "Password" else "**********"
+            list_item.secondary_text = (
+                value if list_item.text != "Password" else "**********"
+            )
 
             text = list_item.text
             if text == "Database Name":
@@ -454,7 +536,9 @@ class DatabaseOptionsScreen(Screen):
 
     def syncDatabaseButton(self):
         if self.manager.pg_con is None:
-            self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
+            self.cursor.execute(
+                "SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options"
+            )
             pg_data = self.cursor.fetchone()
             self.manager.connectRemoteDatabase(pg_data)
         pg_con = self.manager.pg_con
@@ -476,13 +560,16 @@ class DatabaseOptionsScreen(Screen):
 
         if remote_data and local_data:
             toast("Please, Delete 'accounts' table in the PostgreSQL database")
-            #TODO user can select remote or local database for sync
+            # TODO user can select remote or local database for sync
 
         elif local_data:
+
             def insert_data_to_remote_database():
                 pg_cursor.execute("INSERT INTO options VALUES(%s, %s)", local_options)
                 for account in local_data:
-                    pg_cursor.execute("INSERT INTO accounts VALUES(%s, %s, %s, %s, %s)", account)
+                    pg_cursor.execute(
+                        "INSERT INTO accounts VALUES(%s, %s, %s, %s, %s)", account
+                    )
                 pg_con.commit()
 
                 toast("Sync Completed")
@@ -491,6 +578,7 @@ class DatabaseOptionsScreen(Screen):
             Thread(target=insert_data_to_remote_database).start()
 
         elif remote_data:
+
             def syncWithRemoteDatabase(password):
                 encrypted, salt = map(bytes.fromhex, remote_options)
                 cipher = self.manager.createCipher(password, salt)
@@ -506,9 +594,14 @@ class DatabaseOptionsScreen(Screen):
                     dialog.dismiss()
                     toast("Please wait until Sync is Complete")
 
-                    self.cursor.execute("UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?", (*remote_options, *local_options))
+                    self.cursor.execute(
+                        "UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?",
+                        (*remote_options, *local_options),
+                    )
                     for account in remote_data:
-                        self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
+                        self.cursor.execute(
+                            "INSERT INTO accounts VALUES(?,?,?,?,?)", account
+                        )
                     self.con.commit()
 
                     self.manager.cipher = cipher
@@ -520,19 +613,20 @@ class DatabaseOptionsScreen(Screen):
             dialog = MDDialog(
                 title="Password of the Remote Backup",
                 type="custom",
-                content_cls=DatabasePasswordDialogContent(hint_text="Password of the Remote Backup"),
+                content_cls=DatabasePasswordDialogContent(
+                    hint_text="Password of the Remote Backup"
+                ),
                 buttons=[
+                    MDFlatButton(text="Cancel", on_press=lambda x: dialog.dismiss()),
                     MDFlatButton(
-                        text="Cancel", on_press=lambda x: dialog.dismiss()
-                    ),
-                    MDFlatButton(
-                        text="Okay", on_press=lambda x: syncWithRemoteDatabase(dialog.content_cls.ids.password_field.text)
+                        text="Okay",
+                        on_press=lambda x: syncWithRemoteDatabase(
+                            dialog.content_cls.ids.password_field.text
+                        ),
                     ),
                 ],
             )
             dialog.open()
-
-
 
     def exit_manager(self, *args):
         self.file_manager.close()
@@ -546,8 +640,9 @@ class DatabaseOptionsScreen(Screen):
 
 
 class OneLineListItemWithContainer(ContainerSupport, OneLineListItem):
-    def start_ripple(self): # disable ripple behavior
+    def start_ripple(self):  # disable ripple behavior
         pass
+
 
 class SecurityOptionsScreen(Screen):
     def __init__(self, **kwargs):
@@ -587,6 +682,7 @@ class SecurityOptionsScreen(Screen):
     def goBackBtn(self):
         self.manager.setOptionsScreen()
 
+
 class ChangeMasterPasswordScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -602,7 +698,9 @@ class ChangeMasterPasswordScreen(Screen):
         data = self.cursor.fetchone()
 
         encrypted = bytes.fromhex(data[0])
-        self.password = self.cipher.decrypt(encrypted[:16], encrypted[16:], None).decode()
+        self.password = self.cipher.decrypt(
+            encrypted[:16], encrypted[16:], None
+        ).decode()
 
         self.remote_database = data[1]
 
@@ -624,12 +722,17 @@ class ChangeMasterPasswordScreen(Screen):
 
         for account in accounts:
             old_encrypted = bytes.fromhex(account[1])
-            password = old_cipher.decrypt(old_encrypted[:16], old_encrypted[16:], None).decode()
+            password = old_cipher.decrypt(
+                old_encrypted[:16], old_encrypted[16:], None
+            ).decode()
 
             nonce = os.urandom(16)
             new_encrypted = nonce + new_cipher.encrypt(nonce, password.encode(), None)
 
-            self.cursor.execute("UPDATE accounts SET password = ? WHERE id = ?", (new_encrypted.hex(), account[0]))
+            self.cursor.execute(
+                "UPDATE accounts SET password = ? WHERE id = ?",
+                (new_encrypted.hex(), account[0]),
+            )
         self.con.commit()
 
         self.cipher = new_cipher
@@ -642,7 +745,10 @@ class ChangeMasterPasswordScreen(Screen):
             elif new_password == confirm_new_password:
                 encrypted, salt = self.initCipher(new_password)
 
-                self.cursor.execute("UPDATE options SET master_password = ?, salt = ?", (encrypted.hex(), salt.hex()))
+                self.cursor.execute(
+                    "UPDATE options SET master_password = ?, salt = ?",
+                    (encrypted.hex(), salt.hex()),
+                )
                 self.con.commit()
 
                 self.manager.createCipher(new_password, salt)
@@ -652,7 +758,9 @@ class ChangeMasterPasswordScreen(Screen):
                 toast("Master Password Successfully Changed")
 
                 if self.remote_database:
-                    query = "UPDATE options SET master_password = {}, salt = {}".format(repr(encrypted.hex), repr(salt.hex()))
+                    query = "UPDATE options SET master_password = {}, salt = {}".format(
+                        repr(encrypted.hex), repr(salt.hex())
+                    )
                     self.manager.runRemoteDatabaseQuery(query)
 
             else:
@@ -704,20 +812,20 @@ class ChangeMasterPasswordScreen(Screen):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(
-            duration=0.2, _current_error_color=instance.error_color
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=instance.error_color).start(
+            instance
+        )
         Animation(
             _current_right_lbl_color=instance.error_color,
             _current_hint_text_color=instance.error_color,
             _current_line_color=instance.error_color,
-            _line_width=instance.width, duration=0.2, t="out_quad"
+            _line_width=instance.width,
+            duration=0.2,
+            t="out_quad",
         ).start(instance)
 
     def closeFieldError(self, instance):
-        Animation(
-            duration=0.2, _current_error_color=(0, 0, 0, 0)
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
         Animation(
             duration=0.2,
             _current_line_color=instance.line_color_focus,
@@ -731,6 +839,7 @@ class ChangeMasterPasswordScreen(Screen):
 class RightCheckbox(IRightBodyTouch, MDCheckbox):
     pass
 
+
 class PasswordSuggestionOptionsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -742,11 +851,13 @@ class PasswordSuggestionOptionsScreen(Screen):
         self.setOptions()
 
     def getOptions(self):
-        self.cursor.execute("SELECT password_length, password_suggestion_options FROM options")
+        self.cursor.execute(
+            "SELECT password_length, password_suggestion_options FROM options"
+        )
         options = self.cursor.fetchone()
 
         self.password_length = options[0]
-        self.password_suggestion_options = [bool(int(o)) for o in options[1].split(',')]
+        self.password_suggestion_options = [bool(int(o)) for o in options[1].split(",")]
 
     def setOptions(self):
         self.ids.slider.value = self.password_length
@@ -774,7 +885,9 @@ class PasswordSuggestionOptionsScreen(Screen):
         if any(checkbox_status):
             options = ",".join([str(int(i)) for i in checkbox_status])
 
-            self.cursor.execute("UPDATE options SET password_suggestion_options = ?", (options,))
+            self.cursor.execute(
+                "UPDATE options SET password_suggestion_options = ?", (options,)
+            )
             self.con.commit()
 
         else:

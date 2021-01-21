@@ -27,7 +27,11 @@ class LoginScreen(Screen):
             self.initFieldError(password_field)
 
         elif self.manager.getCipher(password_field.text):
-            self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
+            self.manager.transition = (
+                FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+                if self.transition_animation
+                else NoTransition()
+            )
             self.manager.setMainScreen()
 
         else:
@@ -51,26 +55,30 @@ class LoginScreen(Screen):
             self.closeFieldError(instance)
 
             if self.manager.getCipher(instance.text):
-                self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.transition_animation else NoTransition()
+                self.manager.transition = (
+                    FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+                    if self.transition_animation
+                    else NoTransition()
+                )
                 self.manager.setMainScreen()
 
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(
-            duration=0.2, _current_error_color=instance.error_color
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=instance.error_color).start(
+            instance
+        )
         Animation(
             _current_right_lbl_color=instance.error_color,
             _current_hint_text_color=instance.error_color,
             _current_line_color=instance.error_color,
-            _line_width=instance.width, duration=0.2, t="out_quad"
+            _line_width=instance.width,
+            duration=0.2,
+            t="out_quad",
         ).start(instance)
 
     def closeFieldError(self, instance):
-        Animation(
-            duration=0.2, _current_error_color=(0, 0, 0, 0)
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
         Animation(
             duration=0.2,
             _current_line_color=instance.line_color_focus,

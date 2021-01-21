@@ -1,3 +1,6 @@
+import os
+
+from kivy.lang import Builder
 from kivy.uix.screenmanager import FadeTransition, NoTransition
 
 from kivymd.app import MDApp
@@ -5,16 +8,24 @@ from kivymd.app import MDApp
 from baseclasses.manager import Manager
 
 
+kv_files = os.listdir("kv")
+for kv_file in kv_files:
+    Builder.load_file(os.path.join("kv", kv_file))
+
+
 class Passbank(MDApp):
+
+    manager = None
+
+    transition_animation = None
+    auto_exit = None
+
     def build(self):
-        self.manager = Manager(transition=FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark))
+        self.manager = Manager(
+            transition=FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+        )
 
         return self.manager
-
-    """
-    def on_start(self):
-        self.fps_monitor_start()
-    """
 
     def on_stop(self):
         self.manager.con.close()
@@ -48,7 +59,9 @@ class Passbank(MDApp):
                 pass
 
             if self.transition_animation:
-                self.manager.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+                self.manager.transition = FadeTransition(
+                    duration=0.2, clearcolor=self.theme_cls.bg_dark
+                )
 
     def getOptions(self):
         self.manager.cursor.execute("SELECT animation_options, auto_exit FROM options")

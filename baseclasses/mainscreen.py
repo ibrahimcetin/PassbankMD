@@ -13,7 +13,11 @@ from kivy.animation import Animation
 from kivy.utils import platform
 from kivy.metrics import dp
 
-from kivymd.uix.list import OneLineIconListItem, TwoLineIconListItem, ThreeLineIconListItem
+from kivymd.uix.list import (
+    OneLineIconListItem,
+    TwoLineIconListItem,
+    ThreeLineIconListItem,
+)
 from kivymd.uix.bottomsheet import MDCustomBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dialog import MDDialog
@@ -26,8 +30,10 @@ from kivymd.toast import toast
 class RVOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
 
+
 class RVTwoLineIconListItem(TwoLineIconListItem):
     icon = StringProperty()
+
 
 class RVThreeLineIconListItem(ThreeLineIconListItem):
     icon = StringProperty()
@@ -74,10 +80,15 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
+
+    dialog = None
+
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.main_screen = kwargs.get("main_screen") # for refresh screen after account delete or update
+        self.main_screen = kwargs.get(
+            "main_screen"
+        )  # for refresh screen after account delete or update
 
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
@@ -105,7 +116,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.remote_database = kwargs.get("remote_database")
 
     def copyPassword(self):
-        password = self.cipher.decrypt(self.encrypted[:16], self.encrypted[16:], None).decode()
+        password = self.cipher.decrypt(
+            self.encrypted[:16], self.encrypted[16:], None
+        ).decode()
         Clipboard.copy(password)
 
         toast(f"{self.site} Password Copied")
@@ -128,7 +141,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
             pass
 
         else:
-            self.cursor.execute("UPDATE accounts SET site=? WHERE id=?",(new_site, self._id))
+            self.cursor.execute(
+                "UPDATE accounts SET site=? WHERE id=?", (new_site, self._id)
+            )
             self.con.commit()
 
             self.site = new_site
@@ -137,7 +152,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
         ###
 
         if not (new_email == self.email):
-            self.cursor.execute("UPDATE accounts SET email=? WHERE id=?",(new_email, self._id))
+            self.cursor.execute(
+                "UPDATE accounts SET email=? WHERE id=?", (new_email, self._id)
+            )
             self.con.commit()
 
             self.email = new_email
@@ -145,7 +162,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
             changed.append("Email")
 
         if not (new_username == self.username):
-            self.cursor.execute("UPDATE accounts SET username=? WHERE id=?",(new_username, self._id))
+            self.cursor.execute(
+                "UPDATE accounts SET username=? WHERE id=?", (new_username, self._id)
+            )
             self.con.commit()
 
             self.username = new_username
@@ -155,12 +174,17 @@ class ContentCustomBottomSheet(MDBoxLayout):
         if new_password:
             if new_password == confirm_new_password:
                 nonce = os.urandom(16)
-                self.encrypted = nonce + self.cipher.encrypt(nonce, new_password.encode(), None)
+                self.encrypted = nonce + self.cipher.encrypt(
+                    nonce, new_password.encode(), None
+                )
 
-                self.cursor.execute("UPDATE accounts SET password=? WHERE id=?", (self.encrypted.hex(), self._id))
+                self.cursor.execute(
+                    "UPDATE accounts SET password=? WHERE id=?",
+                    (self.encrypted.hex(), self._id),
+                )
                 self.con.commit()
 
-                #TODO clear new password fields after password changed
+                # TODO clear new password fields after password changed
 
                 changed.append("Password")
 
@@ -174,16 +198,27 @@ class ContentCustomBottomSheet(MDBoxLayout):
             if self.remote_database:
                 if new_password and new_password == confirm_new_password:
                     encrypted = self.cipher.encrypt(new_password)
-                    query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(encrypted.hex()), repr(self._id))
+                    query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(
+                        repr(new_site),
+                        repr(new_email),
+                        repr(new_username),
+                        repr(encrypted.hex()),
+                        repr(self._id),
+                    )
                 else:
-                    query = "UPDATE accounts SET site={}, email={}, username={} WHERE id={}".format(repr(new_site), repr(new_email), repr(new_username), repr(self._id))
+                    query = "UPDATE accounts SET site={}, email={}, username={} WHERE id={}".format(
+                        repr(new_site),
+                        repr(new_email),
+                        repr(new_username),
+                        repr(self._id),
+                    )
 
                 self.main_screen.manager.runRemoteDatabaseQuery(query)
 
-        if self.auto_backup and len(changed) > 0: # auto backup
+        if self.auto_backup and len(changed) > 0:  # auto backup
             shutil.copy2("pass.db", self.auto_backup_location)
 
-        self.main_screen.initUI() # refresh main screen
+        self.main_screen.initUI()  # refresh main screen
 
     def deleteAccountDialog(self):
         self.dialog = MDDialog(
@@ -191,14 +226,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
             size_hint=(0.8, 0.22),
             text=f"\nYou will delete [b]{self.site}[/b]. Are you sure?",
             buttons=[
-                MDFlatButton(
-                    text="Yes", on_press=self.deleteAccount
-                ),
-                MDFlatButton(
-                    text="No", on_press=self.closeDialog
-                )]
+                MDFlatButton(text="Yes", on_press=self.deleteAccount),
+                MDFlatButton(text="No", on_press=self.closeDialog),
+            ],
         )
-        self.dialog.ids.text.text_color = [0,0,0]
+        self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
 
     def deleteAccount(self, button):
@@ -210,27 +242,29 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.dismiss()
         self.main_screen.bottom_sheet.dismiss()
 
-        self.main_screen.initUI() # refresh main screen
+        self.main_screen.initUI()  # refresh main screen
 
         if self.auto_backup:
             shutil.copy2("pass.db", self.auto_backup_location)
 
         if self.remote_database:
-            query = "DELETE FROM accounts WHERE id={}".format(repr(self._id),)
+            query = "DELETE FROM accounts WHERE id={}".format(
+                repr(self._id),
+            )
             self.main_screen.manager.runRemoteDatabaseQuery(query)
 
     def showPassword(self):
-        password = self.cipher.decrypt(self.encrypted[:16], self.encrypted[16:], None).decode()
+        password = self.cipher.decrypt(
+            self.encrypted[:16], self.encrypted[16:], None
+        ).decode()
 
         self.dialog = MDDialog(
             title=f"{self.site} Password",
             size_hint=(0.8, 0.22),
             text=f"\n[font=fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
-            buttons=[
-                MDRaisedButton(text="Close", on_press=self.closeDialog)
-            ]
+            buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
         )
-        self.dialog.ids.text.text_color = [0,0,0]
+        self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
 
     def showNewPasswordButton(self, button, field_1, field_2):
@@ -267,20 +301,20 @@ class ContentCustomBottomSheet(MDBoxLayout):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(
-            duration=0.2, _current_error_color=instance.error_color
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=instance.error_color).start(
+            instance
+        )
         Animation(
             _current_right_lbl_color=instance.error_color,
             _current_hint_text_color=instance.error_color,
             _current_line_color=instance.error_color,
-            _line_width=instance.width, duration=0.2, t="out_quad"
+            _line_width=instance.width,
+            duration=0.2,
+            t="out_quad",
         ).start(instance)
 
     def closeFieldError(self, instance):
-        Animation(
-            duration=0.2, _current_error_color=(0, 0, 0, 0)
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
         Animation(
             duration=0.2,
             _current_line_color=instance.line_color_focus,
@@ -292,11 +326,27 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
 
 class MainScreen(Screen):
+
     button_data = {
-            "key": "Suggest Password",
-            'account-plus': 'Add Account',
-            "clipboard": "Clear Clipboard"
+        "key": "Suggest Password",
+        "account-plus": "Add Account",
+        "clipboard": "Clear Clipboard",
     }
+
+    accounts = None
+
+    sort_by = None
+    list_subtitles_options = None
+    bottomsheet_animation = None
+
+    auto_backup = None
+    auto_backup_location = None
+    remote_database = None
+
+    password_length = None
+    password_suggestion_options = None
+
+    bottom_sheet = None
 
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
@@ -338,7 +388,10 @@ class MainScreen(Screen):
         self.pg_cursor.execute("SELECT master_password, salt FROM options")
         remote_options = self.pg_cursor.fetchall()[0]
         if remote_options and remote_options != local_options:
-            self.cursor.execute("UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?", (*remote_options, *local_options))
+            self.cursor.execute(
+                "UPDATE options SET master_password = ?, salt = ? WHERE master_password = ? AND salt = ?",
+                (*remote_options, *local_options),
+            )
 
         pg_data = remote_diff()
         for account in pg_data:
@@ -346,7 +399,10 @@ class MainScreen(Screen):
             updated_account = self.cursor.fetchone()
 
             if updated_account:
-                self.cursor.execute("UPDATE accounts SET site=?, email=?, username=?, password=? WHERE id=?", (*account[1:], account[0]))
+                self.cursor.execute(
+                    "UPDATE accounts SET site=?, email=?, username=?, password=? WHERE id=?",
+                    (*account[1:], account[0]),
+                )
                 local_data.remove(updated_account)
             else:
                 self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
@@ -384,7 +440,9 @@ class MainScreen(Screen):
         Thread(target=self.sync, args=(queries, local_data, local_options)).start()
 
     def getOptions(self):
-        self.cursor.execute("SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, remote_database, password_length, password_suggestion_options FROM options")
+        self.cursor.execute(
+            "SELECT sort_by, list_subtitles, animation_options, auto_backup, auto_backup_location, remote_database, password_length, password_suggestion_options FROM options"
+        )
         options = self.cursor.fetchone()
 
         self.sort_by = options[0]
@@ -396,9 +454,10 @@ class MainScreen(Screen):
         self.remote_database = bool(options[5])
 
         self.password_length = options[6]
-        self.password_suggestion_options = [bool(int(o)) for o in options[7].split(',')]
+        self.password_suggestion_options = [bool(int(o)) for o in options[7].split(",")]
 
-        if self.manager: self.cipher = self.manager.cipher # for master password update
+        if self.manager:
+            self.cipher = self.manager.cipher  # for master password update
 
     def getAccounts(self):
         if self.sort_by == "a_to_z":
@@ -444,10 +503,12 @@ class MainScreen(Screen):
 
             # Set options
             base = {
-                    "icon": icon,
-                    "text": site,
-                    "on_press": lambda x=None: self.openBottomSheet(_id, site, email, username, encrypted),
-                    }
+                "icon": icon,
+                "text": site,
+                "on_press": lambda x=None: self.openBottomSheet(
+                    _id, site, email, username, encrypted
+                ),
+            }
 
             if all(self.list_subtitles_options):
                 base["viewclass"] = "RVThreeLineIconListItem"
@@ -466,9 +527,7 @@ class MainScreen(Screen):
                 base["viewclass"] = "RVOneLineIconListItem"
             ###
 
-            self.ids.recycle_view.data.append(
-                base
-            )
+            self.ids.recycle_view.data.append(base)
 
         self.ids.recycle_view.data = []
         for account in self.accounts:
@@ -511,6 +570,22 @@ class MainScreen(Screen):
             self.manager.setAddAccountScreen()
 
     def openBottomSheet(self, _id, site, email, username, encrypted):
-        self.bottom_sheet = MyMDCustomBottomSheet(screen=ContentCustomBottomSheet(main_screen=self, con=self.con, cursor=self.cursor, cipher=self.cipher, _id=_id, site=site, email=email, username=username, encrypted=encrypted, auto_backup=self.auto_backup, auto_backup_location=self.auto_backup_location, remote_database=self.remote_database), animation=self.bottomsheet_animation, duration_opening=0.1)
+        self.bottom_sheet = MyMDCustomBottomSheet(
+            screen=ContentCustomBottomSheet(
+                main_screen=self,
+                con=self.con,
+                cursor=self.cursor,
+                cipher=self.cipher,
+                _id=_id,
+                site=site,
+                email=email,
+                username=username,
+                encrypted=encrypted,
+                auto_backup=self.auto_backup,
+                auto_backup_location=self.auto_backup_location,
+                remote_database=self.remote_database,
+            ),
+            animation=self.bottomsheet_animation,
+            duration_opening=0.1,
+        )
         self.bottom_sheet.open()
-

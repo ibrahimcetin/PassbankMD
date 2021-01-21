@@ -1,36 +1,63 @@
 import sqlite3
-import psycopg2
 from threading import Thread
 
-from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
 from kivy.core.window import Window
 
 from kivymd.theming import ThemeManager
 
-from baseclasses.registerscreen import RegisterScreen
-from baseclasses.loginscreen import LoginScreen
-from baseclasses.mainscreen import MainScreen
-from baseclasses.addaccountscreen import AddAccountScreen
-from baseclasses.optionsscreen import OptionsScreen, AppearanceOptionsScreen, DatabaseOptionsScreen, SecurityOptionsScreen, ChangeMasterPasswordScreen, PasswordSuggestionOptionsScreen
+import psycopg2
 
 import cryptography
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.backends import default_backend
 
+from .registerscreen import RegisterScreen
+from .loginscreen import LoginScreen
+from .mainscreen import MainScreen
+from .addaccountscreen import AddAccountScreen
+from .optionsscreen import (
+    OptionsScreen,
+    AppearanceOptionsScreen,
+    DatabaseOptionsScreen,
+    SecurityOptionsScreen,
+    ChangeMasterPasswordScreen,
+    PasswordSuggestionOptionsScreen,
+)
+
 
 class Manager(ScreenManager):
+
+    con = None
+    cursor = None
+
+    cipher = None
+
+    pg_con = None
+    pg_cursor = None
+
+    internet_connection = True
+
+    register_screen = None
+    login_screen = None
+    main_screen = None
+    add_account_screen = None
+
+    options_screen = None
+    appearance_options_screen = None
+    database_options_screen = None
+    security_options_screen = None
+    change_master_password_screen = None
+    password_suggestion_options = None
+
+    master_password_exists = False
+    file_manager_open = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         Window.bind(on_keyboard=self.on_key)
-
-        self.con = None
-        self.cursor = None
-        self.cipher = None
-        self.master_password_exists = None
-        self.file_manager_open = None
 
         self.theme_cls = ThemeManager()
 
@@ -38,19 +65,26 @@ class Manager(ScreenManager):
             "appearance_options_screen",
             "database_options_screen",
             "security_options_screen",
-            "password_suggestion_options_screen"
+            "password_suggestion_options_screen",
         ]
 
         self.setStartScreen()
 
     def on_key(self, window, key, *args):
         if key == 27:  # the esc key
-            if self.current_screen.name == "register_screen" or self.current_screen.name == "login_screen" or self.current_screen.name == "main_screen":
-                return False # exit the app
+            if (
+                self.current_screen.name == "register_screen"
+                or self.current_screen.name == "login_screen"
+                or self.current_screen.name == "main_screen"
+            ):
+                return False  # exit the app
 
-            elif self.current_screen.name == "add_account_screen" or self.current_screen.name == "options_screen":
+            elif (
+                self.current_screen.name == "add_account_screen"
+                or self.current_screen.name == "options_screen"
+            ):
                 self.setMainScreen()
-                return True # do not exit the app
+                return True  # do not exit the app
 
             elif self.file_manager_open == True:
                 self.database_options_screen.file_manager.back()
@@ -68,22 +102,35 @@ class Manager(ScreenManager):
         self.con = sqlite3.connect("pass.db", check_same_thread=False)
         self.cursor = self.con.cursor()
 
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)")
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS offline_queries (id INTEGER PRIMARY KEY, query TEXT)")
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)"
+        )
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)"
+        )
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS offline_queries (id INTEGER PRIMARY KEY, query TEXT)"
+        )
 
     def connectRemoteDatabase(self, pg_data):
-        self.pg_con = None
-        self.pg_cursor = None
-        self.internet_connection = True
-
         def connect():
             try:
-                self.pg_con = psycopg2.connect(database=pg_data[1], user=pg_data[2], password=pg_data[3], host=pg_data[4], port=pg_data[5])
+                self.pg_con = psycopg2.connect(
+                    database=pg_data[1],
+                    user=pg_data[2],
+                    password=pg_data[3],
+                    host=pg_data[4],
+                    port=pg_data[5],
+                )
                 self.pg_cursor = self.pg_con.cursor()
 
-                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)")
-                self.pg_cursor.execute("CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT)")
+                self.pg_cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)"
+                )
+                self.pg_cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT)"
+                )
+
                 self.internet_connection = True
             except:
                 self.internet_connection = False
@@ -99,22 +146,21 @@ class Manager(ScreenManager):
             self.pg_cursor.execute(query)
             self.pg_con.commit()
 
+            self.internet_connection = True
+
         try:
             Thread(target=run_query(query)).start()
-            self.internet_connection = True
         except:
-            self.cursor.execute("INSERT INTO offline_queries (query) VALUES(?)",(query,))
+            self.cursor.execute(
+                "INSERT INTO offline_queries (query) VALUES(?)", (query,)
+            )
             self.con.commit()
+
             self.internet_connection = False
 
     def createCipher(self, password, salt):
         kdf = Scrypt(
-            salt=salt,
-            length=32,
-            n=2**14,
-            r=2**3,
-            p=1,
-            backend=default_backend()
+            salt=salt, length=32, n=2 ** 14, r=2 ** 3, p=1, backend=default_backend()
         )
 
         key = kdf.derive(password.encode())
@@ -142,12 +188,30 @@ class Manager(ScreenManager):
 
         self.master_password_exists = True if encrypted else False
 
+    def initOptionsScreen(self):
+        self.appearance_options_screen = AppearanceOptionsScreen(
+            con=self.con, cursor=self.cursor, name="appearance_options_screen"
+        )
+        self.database_options_screen = DatabaseOptionsScreen(
+            con=self.con, cursor=self.cursor, name="database_options_screen"
+        )
+        self.security_options_screen = SecurityOptionsScreen(
+            con=self.con, cursor=self.cursor, name="security_options_screen"
+        )
+        self.password_suggestion_options_screen = PasswordSuggestionOptionsScreen(
+            con=self.con, cursor=self.cursor, name="password_suggestion_options_screen"
+        )
+
     def setStartScreen(self):
         self.connectDatabase()
 
-        self.cursor.execute("SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options")
+        self.cursor.execute(
+            "SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options"
+        )
         pg_data = self.cursor.fetchone()
-        Thread(target=self.connectRemoteDatabase, args=(pg_data,)).start() #TODO improve this
+        Thread(
+            target=self.connectRemoteDatabase, args=(pg_data,)
+        ).start()  # TODO improve this
 
         self.checkMasterPasswordExists()
 
@@ -159,9 +223,9 @@ class Manager(ScreenManager):
     def setRegisterScreen(self):
         Window.softinput_mode = ""
 
-        Builder.load_file("kv/register_screen.kv")
-
-        self.register_screen = RegisterScreen(con=self.con, cursor=self.cursor, name="register_screen")
+        self.register_screen = RegisterScreen(
+            con=self.con, cursor=self.cursor, name="register_screen"
+        )
         self.add_widget(self.register_screen)
         self.current = "register_screen"
 
@@ -169,11 +233,8 @@ class Manager(ScreenManager):
         Window.softinput_mode = ""
 
         if self.has_screen("login_screen"):
-            self.remove_widget(self.login_screen) # this if statement for reset screen
+            self.remove_widget(self.login_screen)  # this if statement for reset screen
             del self.login_screen
-
-        else:
-            Builder.load_file("kv/login_screen.kv") # for load once
 
         # always run in this method
         self.login_screen = LoginScreen(cursor=self.cursor, name="login_screen")
@@ -181,7 +242,7 @@ class Manager(ScreenManager):
         self.current = "login_screen"
 
     def setMainScreen(self):
-        Window.release_keyboard() # for autoLogin function in loginscreen.py
+        Window.release_keyboard()  # for autoLogin function in loginscreen.py
         Window.softinput_mode = ""
 
         if self.has_screen("main_screen"):
@@ -189,9 +250,17 @@ class Manager(ScreenManager):
             self.current = "main_screen"
 
         else:
-            Builder.load_file("kv/main_screen.kv")
+            self.initOptionsScreen()
 
-            self.main_screen = MainScreen(con=self.con, cursor=self.cursor, pg_con=self.pg_con, pg_cursor=self.pg_cursor, cipher=self.cipher, internet_connection=self.internet_connection, name="main_screen")
+            self.main_screen = MainScreen(
+                con=self.con,
+                cursor=self.cursor,
+                pg_con=self.pg_con,
+                pg_cursor=self.pg_cursor,
+                cipher=self.cipher,
+                internet_connection=self.internet_connection,
+                name="main_screen",
+            )
             self.add_widget(self.main_screen)
             self.current = "main_screen"
 
@@ -199,28 +268,34 @@ class Manager(ScreenManager):
         Window.softinput_mode = "below_target"
 
         if self.has_screen("add_account_screen"):
-            self.remove_widget(self.add_account_screen) # this if statement for reset screen
+            self.remove_widget(
+                self.add_account_screen
+            )  # this if statement for reset screen
             del self.add_account_screen
 
-        else:
-            Builder.load_file("kv/add_account_screen.kv") # for load once
-
         # always run in this method
-        self.add_account_screen = AddAccountScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="add_account_screen")
+        self.add_account_screen = AddAccountScreen(
+            con=self.con,
+            cursor=self.cursor,
+            cipher=self.cipher,
+            name="add_account_screen",
+        )
         self.add_widget(self.add_account_screen)
         self.current = "add_account_screen"
 
     def setOptionsScreen(self):
         if self.current_screen.name == "appearance_options_screen":
-            self.appearance_options_screen.getOptions() # update self.animation_options
-            self.transition = FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark) if self.appearance_options_screen.animation_options[0] else NoTransition()
+            self.appearance_options_screen.getOptions()  # update self.animation_options
+            self.transition = (
+                FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
+                if self.appearance_options_screen.animation_options[0]
+                else NoTransition()
+            )
 
         if self.has_screen("options_screen"):
             self.current = "options_screen"
 
         else:
-            Builder.load_file("kv/options_screen.kv") # for load once
-
             self.options_screen = OptionsScreen(name="options_screen")
             self.add_widget(self.options_screen)
             self.current = "options_screen"
@@ -230,7 +305,6 @@ class Manager(ScreenManager):
             self.current = "appearance_options_screen"
 
         else:
-            self.appearance_options_screen = AppearanceOptionsScreen(con=self.con, cursor=self.cursor, name="appearance_options_screen")
             self.add_widget(self.appearance_options_screen)
             self.current = "appearance_options_screen"
 
@@ -239,7 +313,6 @@ class Manager(ScreenManager):
             self.current = "database_options_screen"
 
         else:
-            self.database_options_screen = DatabaseOptionsScreen(con=self.con, cursor=self.cursor, name="database_options_screen")
             self.add_widget(self.database_options_screen)
             self.current = "database_options_screen"
 
@@ -248,7 +321,6 @@ class Manager(ScreenManager):
             self.current = "security_options_screen"
 
         else:
-            self.security_options_screen = SecurityOptionsScreen(con=self.con, cursor=self.cursor, name="security_options_screen")
             self.add_widget(self.security_options_screen)
             self.current = "security_options_screen"
 
@@ -256,11 +328,18 @@ class Manager(ScreenManager):
         Window.softinput_mode = "below_target"
 
         if self.has_screen("change_master_password_screen"):
-            self.remove_widget(self.change_master_password_screen) # this if statement for reset screen
+            self.remove_widget(
+                self.change_master_password_screen
+            )  # this if statement for reset screen
             del self.change_master_password_screen
 
         # always run in this method
-        self.change_master_password_screen = ChangeMasterPasswordScreen(con=self.con, cursor=self.cursor, cipher=self.cipher, name="change_master_password_screen")
+        self.change_master_password_screen = ChangeMasterPasswordScreen(
+            con=self.con,
+            cursor=self.cursor,
+            cipher=self.cipher,
+            name="change_master_password_screen",
+        )
         self.add_widget(self.change_master_password_screen)
         self.current = "change_master_password_screen"
 
@@ -269,6 +348,5 @@ class Manager(ScreenManager):
             self.current = "password_suggestion_options_screen"
 
         else:
-            self.password_suggestion_options_screen = PasswordSuggestionOptionsScreen(con=self.con, cursor=self.cursor, name="password_suggestion_options_screen")
             self.add_widget(self.password_suggestion_options_screen)
             self.current = "password_suggestion_options_screen"

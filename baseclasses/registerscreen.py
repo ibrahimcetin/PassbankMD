@@ -33,9 +33,34 @@ class RegisterScreen(Screen):
         elif password_field.text == confirm_password_field.text:
             encrypted, salt = self.initCipher(password_field.text)
 
-            path = os.getenv("EXTERNAL_STORAGE") if platform == "android" else os.path.expanduser("~")
+            path = (
+                os.getenv("EXTERNAL_STORAGE")
+                if platform == "android"
+                else os.path.expanduser("~")
+            )
 
-            self.cursor.execute("INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (encrypted.hex(), salt.hex(), "a_to_z", "1,1", "1,1", 0, path, 0, None, None, None, None, None, 1, 1, 15, "1,1,1,1"))
+            self.cursor.execute(
+                "INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    encrypted.hex(),
+                    salt.hex(),
+                    "a_to_z",
+                    "1,1",
+                    "1,1",
+                    0,
+                    path,
+                    0,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    1,
+                    1,
+                    15,
+                    "1,1,1,1",
+                ),
+            )
             self.con.commit()
 
             self.manager.getCipher(password_field.text)
@@ -45,7 +70,11 @@ class RegisterScreen(Screen):
                 text="Make sure that you Remember your Master Password",
                 duration=600,
             )
-            snackbar.buttons = [MDFlatButton(text="GOT IT", text_color=(1, 0, 1, 1), on_press=snackbar.dismiss)]
+            snackbar.buttons = [
+                MDFlatButton(
+                    text="GOT IT", text_color=(1, 0, 1, 1), on_press=snackbar.dismiss
+                )
+            ]
             snackbar.open()
 
         else:
@@ -82,20 +111,20 @@ class RegisterScreen(Screen):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(
-            duration=0.2, _current_error_color=instance.error_color
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=instance.error_color).start(
+            instance
+        )
         Animation(
             _current_right_lbl_color=instance.error_color,
             _current_hint_text_color=instance.error_color,
             _current_line_color=instance.error_color,
-            _line_width=instance.width, duration=0.2, t="out_quad"
+            _line_width=instance.width,
+            duration=0.2,
+            t="out_quad",
         ).start(instance)
 
     def closeFieldError(self, instance):
-        Animation(
-            duration=0.2, _current_error_color=(0, 0, 0, 0)
-        ).start(instance)
+        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
         Animation(
             duration=0.2,
             _current_line_color=instance.line_color_focus,
