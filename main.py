@@ -5,12 +5,13 @@ from kivy.uix.screenmanager import FadeTransition, NoTransition
 
 from kivymd.app import MDApp
 
-from baseclasses.manager import Manager
+from libs.baseclass.manager import Manager
 
 
-kv_files = os.listdir("kv")
+kv_dir = os.path.join("libs", "kv")
+kv_files = os.listdir(kv_dir)
 for kv_file in kv_files:
-    Builder.load_file(os.path.join("kv", kv_file))
+    Builder.load_file(os.path.join(kv_dir, kv_file))
 
 
 class Passbank(MDApp):

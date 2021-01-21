@@ -13,7 +13,7 @@ block_cipher = None
 a = Analysis(['main.py'],
              pathex=[path],
              binaries=[],
-             datas=[("kv\\", "kv\\"), ("fonts\\", "fonts\\")],
+             datas=[("libs\\kv\\", "libs\\kv\\"), ("assets\\fonts\\", "assets\\fonts\\")],
              hiddenimports=[
                 "baseclasses.addaccountscreen.py",
                 "baseclasses.loginscreen.py",

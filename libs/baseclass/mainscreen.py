@@ -261,7 +261,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog = MDDialog(
             title=f"{self.site} Password",
             size_hint=(0.8, 0.22),
-            text=f"\n[font=fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
+            text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
             buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
