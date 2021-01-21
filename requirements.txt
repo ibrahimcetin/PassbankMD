@@ -1,5 +1,5 @@
 kivy
 https://github.com/ibrahimcetin/KivyMD/archive/master.zip
-cryptography==2.8
+cryptography==3.2
 psycopg2==2.8.4
 qrcode==6.1
