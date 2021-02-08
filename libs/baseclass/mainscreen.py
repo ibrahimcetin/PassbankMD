@@ -199,7 +199,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             if self.remote_database:
                 if new_password and new_password == confirm_new_password:
-                    encrypted = self.cipher.encrypt(new_password)
+                    nonce = os.urandom(16)
+                    encrypted = nonce + self.cipher.encrypt(
+                        nonce, new_password.encode(), None
+                    )
+
                     query = "UPDATE accounts SET site={}, email={}, username={}, password={} WHERE id={}".format(
                         repr(new_site),
                         repr(new_email),
