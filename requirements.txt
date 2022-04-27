@@ -2,7 +2,7 @@ kivy==2.0.0rc3
 kivy-deps.glew==0.3.0; sys_platform == 'win32'
 kivy-deps.sdl2==0.3.1; sys_platform == 'win32'
 https://github.com/kivymd/KivyMD/archive/b8b718f24ce8d7dc90b78ea62574e208ef32776a.zip
-cryptography==3.2
+cryptography==3.3.2
 psycopg2-binary==2.9.1
 qrcode==6.1
 pyinstaller==4.5.1
