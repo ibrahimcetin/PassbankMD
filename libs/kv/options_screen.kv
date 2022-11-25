@@ -6,9 +6,8 @@
         icon: root.icon
 
 <OptionsScreen>
-    MDToolbar:
+    MDTopAppBar:
         title: "Options"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
@@ -36,9 +35,8 @@
         id: check
 
 <AppearanceOptionsScreen>:
-    MDToolbar:
+    MDTopAppBar:
         title: "Appearance"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
@@ -130,9 +128,8 @@
         on_press: root.showPasswordButton(self, password_field)
 
 <DatabaseOptionsScreen>:
-    MDToolbar:
+    MDTopAppBar:
         title: "Database"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
@@ -248,9 +245,8 @@
         size: dp(48), dp(48)
 
 <SecurityOptionsScreen>:
-    MDToolbar:
+    MDTopAppBar:
         title: "Security"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
@@ -290,9 +286,8 @@
                         on_active: root.autoExitFunction(self.active)
 
 <ChangeMasterPasswordScreen>:
-    MDToolbar:
+    MDTopAppBar:
         title: "Change Master Password"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 
@@ -354,9 +349,8 @@
 
 
 <PasswordSuggestionOptionsScreen>:
-    MDToolbar:
+    MDTopAppBar:
         title: "Password Suggestion"
-        elevation: 10
         pos_hint: {"top": 1}
         left_action_items: [["arrow-left", lambda button: root.goBackBtn()]]
 

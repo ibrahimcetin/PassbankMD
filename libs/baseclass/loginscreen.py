@@ -65,25 +65,5 @@ class LoginScreen(Screen):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(duration=0.2, _current_error_color=instance.error_color).start(
-            instance
-        )
-        Animation(
-            _current_right_lbl_color=instance.error_color,
-            _current_hint_text_color=instance.error_color,
-            _current_line_color=instance.error_color,
-            _line_width=instance.width,
-            duration=0.2,
-            t="out_quad",
-        ).start(instance)
-
     def closeFieldError(self, instance):
-        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
-        Animation(
-            duration=0.2,
-            _current_line_color=instance.line_color_focus,
-            _current_hint_text_color=instance.line_color_focus,
-            _current_right_lbl_color=instance.line_color_focus,
-        ).start(instance)
-
         instance.error = False

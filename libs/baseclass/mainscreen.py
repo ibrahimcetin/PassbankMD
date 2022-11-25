@@ -8,7 +8,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, DictProperty
 from kivy.animation import Animation
 from kivy.utils import platform
 from kivy.metrics import dp
@@ -123,7 +123,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         ).decode()
         Clipboard.copy(password)
 
-        toast(f"{self.site} Password Copied")
+        toast(f"{self.site}'s Password Copied")
 
     def updateAccount(self, site_field, confirm_new_password_field):
         new_site = site_field.text
@@ -333,37 +333,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
     def initFieldError(self, instance):
         instance.error = True
 
-        Animation(duration=0.2, _current_error_color=instance.error_color).start(
-            instance
-        )
-        Animation(
-            _current_right_lbl_color=instance.error_color,
-            _current_hint_text_color=instance.error_color,
-            _current_line_color=instance.error_color,
-            _line_width=instance.width,
-            duration=0.2,
-            t="out_quad",
-        ).start(instance)
-
     def closeFieldError(self, instance):
-        Animation(duration=0.2, _current_error_color=(0, 0, 0, 0)).start(instance)
-        Animation(
-            duration=0.2,
-            _current_line_color=instance.line_color_focus,
-            _current_hint_text_color=instance.line_color_focus,
-            _current_right_lbl_color=instance.line_color_focus,
-        ).start(instance)
-
         instance.error = False
 
 
 class MainScreen(Screen):
-
-    button_data = {
-        "key": "Suggest Password",
-        "account-plus": "Add Account",
-        "clipboard": "Clear Clipboard",
-    }
 
     accounts = None
 
@@ -380,6 +354,8 @@ class MainScreen(Screen):
 
     bottom_sheet = None
 
+    button_data = DictProperty()
+
     def __init__(self, **kwargs):
         super().__init__(name=kwargs.get("name"))
 
@@ -390,6 +366,24 @@ class MainScreen(Screen):
         self.cipher = kwargs.get("cipher")
 
         self.internet_connection = kwargs.get("internet_connection")
+
+        self.button_data = {
+            "Suggest Password": [
+                "key",
+                "on_press",
+                self.suggestPassword,
+            ],
+            "Add Account": [
+                "account-plus",
+                "on_press",
+                lambda x: self.manager.setAddAccountScreen(),
+            ],
+            "Clear Clipboard": [
+                "clipboard",
+                "on_press",
+                self.clearClipboard,
+            ],
+        }
 
         if self.pg_con is not None:
             self.initSync()
@@ -575,31 +569,27 @@ class MainScreen(Screen):
             else:
                 add_accounts_to_recycle_view(_id, site, email, username, encrypted)
 
-    def actionButton(self, button):
-        if button.icon == "key":
-            options = self.password_suggestion_options
+    def suggestPassword(self, button):
+        options = self.password_suggestion_options
 
-            chars = ""
+        chars = ""
 
-            if options[0]:
-                chars += string.ascii_lowercase
-            if options[1]:
-                chars += string.ascii_uppercase
-            if options[2]:
-                chars += string.digits
-            if options[3]:
-                chars += string.punctuation
+        if options[0]:
+            chars += string.ascii_lowercase
+        if options[1]:
+            chars += string.ascii_uppercase
+        if options[2]:
+            chars += string.digits
+        if options[3]:
+            chars += string.punctuation
 
-            password = "".join(random.choices(chars, k=self.password_length))
-            Clipboard.copy(password)
-            toast(f"{password} Copied")
+        password = "".join(random.choices(chars, k=self.password_length))
+        Clipboard.copy(password)
+        toast(f"{password} Copied")
 
-        if button.icon == "clipboard":
-            Clipboard.copy(" ")
-            toast("Clipboard Cleaned")
-
-        if button.icon == "account-plus":
-            self.manager.setAddAccountScreen()
+    def clearClipboard(self, button):
+        Clipboard.copy(" ")
+        toast("Clipboard Cleaned")
 
     def openBottomSheet(self, _id, site, email, username, encrypted):
         self.bottom_sheet = MyMDCustomBottomSheet(

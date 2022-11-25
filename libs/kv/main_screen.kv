@@ -33,9 +33,8 @@
     size_hint_y: None
     height: box_layout.height + toolbar.height
 
-    MDToolbar:
+    MDTopAppBar:
         id: toolbar
-        elevation: 10
         pos_hint: {"top": 1}
         right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["qrcode", lambda button: root.showQRCode()], ["eye-outline", lambda button: root.showPassword()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
 
@@ -136,5 +135,4 @@
 
     MDFloatingActionButtonSpeedDial:
         data: root.button_data
-        rotation_root_button: True
-        callback: root.actionButton
+        root_button_anim: True
