@@ -36,6 +36,8 @@ from kivy_garden.qrcode import QRCodeWidget
 
 import pyotp
 
+from .utils import get_user_directory_path
+
 
 class RVOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
@@ -588,7 +590,10 @@ class MainScreen(Screen):
         self.bottomsheet_animation = bool(int(options[2][2]))
 
         self.auto_backup = bool(options[3])
-        self.auto_backup_location = options[4]
+        self.auto_backup_location = (
+            options[4] if os.path.isdir(options[4]) else get_user_directory_path()
+        )
+
         self.remote_database = bool(options[5])
 
         self.password_length = options[6]

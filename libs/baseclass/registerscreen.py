@@ -1,7 +1,6 @@
 import os
 
 from kivy.uix.screenmanager import Screen
-from kivy.utils import platform
 
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.button import MDFlatButton
@@ -32,12 +31,6 @@ class RegisterScreen(Screen):
         elif password_field.text == confirm_password_field.text:
             encrypted, salt = self.initCipher(password_field.text)
 
-            path = (
-                os.getenv("EXTERNAL_STORAGE")
-                if platform == "android"
-                else os.path.expanduser("~")
-            )
-
             self.cursor.execute(
                 "INSERT INTO options VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
@@ -47,7 +40,7 @@ class RegisterScreen(Screen):
                     "1,1",
                     "1,1",
                     0,
-                    path,
+                    "",
                     0,
                     None,
                     None,

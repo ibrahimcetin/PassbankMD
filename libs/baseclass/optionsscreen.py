@@ -27,6 +27,8 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.toast import toast
 from kivymd.theming import ThemeManager
 
+from .utils import get_user_directory_path
+
 
 class CustomOneLineIconListItem(OneLineIconListItem):
     icon = StringProperty()
@@ -283,7 +285,9 @@ class DatabaseOptionsScreen(Screen):
         options = self.cursor.fetchall()[0]
 
         self.auto_backup = bool(options[0])
-        self.auto_backup_location = options[1]
+        self.auto_backup_location = (
+            options[1] if os.path.isdir(options[1]) else get_user_directory_path()
+        )
         self.remote_database = bool(options[2])
 
         self.pg_info = options[3:]
@@ -370,7 +374,10 @@ class DatabaseOptionsScreen(Screen):
 
         self.auto_backup = 1 if active else 0
 
-        self.cursor.execute("UPDATE options SET auto_backup = ?", (self.auto_backup,))
+        self.cursor.execute(
+            "UPDATE options SET auto_backup = ?, auto_backup_location = ?",
+            (self.auto_backup, self.auto_backup_location),
+        )
         self.con.commit()
 
         if self.auto_backup == 1:

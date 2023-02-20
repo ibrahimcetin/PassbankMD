@@ -6,6 +6,8 @@ from kivy.uix.screenmanager import Screen
 
 from kivymd.toast import toast
 
+from .utils import get_user_directory_path
+
 
 class AddAccountScreen(Screen):
     def __init__(self, **kwargs):
@@ -72,7 +74,9 @@ class AddAccountScreen(Screen):
         options = self.cursor.fetchone()
 
         self.auto_backup = bool(options[0])
-        self.auto_backup_location = options[1]
+        self.auto_backup_location = (
+            options[1] if os.path.isdir(options[1]) else get_user_directory_path()
+        )
         self.remote_database = bool(options[2])
 
     def showPasswordBtn(self, button, field_1, field_2):
