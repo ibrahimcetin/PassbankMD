@@ -32,7 +32,7 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 from kivymd.icon_definitions import md_icons
 
-from ..kivy_garden.qrcode import QRCodeWidget
+from kivy_garden.qrcode import QRCodeWidget
 
 import pyotp
 
