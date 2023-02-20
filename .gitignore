@@ -6,3 +6,4 @@ pass.db
 .vscode/
 build/
 dist/
+venv/
