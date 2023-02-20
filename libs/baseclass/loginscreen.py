@@ -1,5 +1,4 @@
 from kivy.uix.screenmanager import Screen, FadeTransition, NoTransition
-from kivy.animation import Animation
 
 from kivymd.theming import ThemeManager
 

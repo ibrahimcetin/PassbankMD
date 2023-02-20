@@ -3,7 +3,6 @@ import shutil
 import uuid
 
 from kivy.uix.screenmanager import Screen
-from kivy.animation import Animation
 
 from kivymd.toast import toast
 

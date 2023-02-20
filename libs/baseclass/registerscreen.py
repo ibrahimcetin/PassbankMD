@@ -1,7 +1,6 @@
 import os
 
 from kivy.uix.screenmanager import Screen
-from kivy.animation import Animation
 from kivy.utils import platform
 
 from kivymd.uix.snackbar import Snackbar
@@ -112,5 +111,4 @@ class RegisterScreen(Screen):
         instance.error = True
 
     def closeFieldError(self, instance):
-
         instance.error = False
