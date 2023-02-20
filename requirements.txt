@@ -3,5 +3,4 @@ kivymd==1.1.1
 cryptography==38.0.3
 psycopg2-binary==2.9.5
 kivy-garden.qrcode==2021.314
-pyinstaller==4.5.1
 pyotp==2.8.0
