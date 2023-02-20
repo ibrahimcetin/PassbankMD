@@ -11,7 +11,6 @@ import psycopg2
 import cryptography
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.backends import default_backend
 
 from .registerscreen import RegisterScreen
 from .loginscreen import LoginScreen
@@ -158,9 +157,7 @@ class Manager(ScreenManager):
         Clock.schedule_once(lambda _: run_query(query))
 
     def createCipher(self, password, salt):
-        kdf = Scrypt(
-            salt=salt, length=32, n=2**14, r=2**3, p=1, backend=default_backend()
-        )
+        kdf = Scrypt(salt=salt, length=32, n=2**14, r=2**3, p=1)
 
         key = kdf.derive(password.encode())
         cipher = AESGCM(key)
