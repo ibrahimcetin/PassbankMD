@@ -40,8 +40,8 @@ class AddAccountScreen(Screen):
                 encrypted = nonce + self.cipher.encrypt(nonce, password.encode(), None)
 
                 self.cursor.execute(
-                    "INSERT INTO accounts VALUES(?,?,?,?,?)",
-                    (_id, site, email, username, encrypted.hex()),
+                    "INSERT INTO accounts VALUES(?,?,?,?,?,?)",
+                    (_id, site, email, username, encrypted.hex(), ""),
                 )
                 self.con.commit()
 
@@ -53,12 +53,13 @@ class AddAccountScreen(Screen):
                     shutil.copy2("pass.db", self.auto_backup_location)
 
                 if self.remote_database:
-                    query = "INSERT INTO accounts VALUES({},{},{},{},{})".format(
+                    query = "INSERT INTO accounts VALUES({},{},{},{},{},{})".format(
                         repr(_id),
                         repr(site),
                         repr(email),
                         repr(username),
                         repr(encrypted.hex()),
+                        repr(""),
                     )
                     self.manager.runRemoteDatabaseQuery(query)
 

@@ -4,12 +4,11 @@ import string
 import random
 import sqlite3
 from functools import partial
-from threading import Thread
 
+from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
-from kivy.animation import Animation
 from kivy.core.clipboard import Clipboard
 
 from kivymd.uix.list import (
@@ -534,12 +533,14 @@ class DatabaseOptionsScreen(Screen):
         self.dialog.dismiss()
 
     def syncDatabaseButton(self):
+        # TODO Fix freezes
         if self.manager.pg_con is None:
             self.cursor.execute(
                 "SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options"
             )
             pg_data = self.cursor.fetchone()
             self.manager.connectRemoteDatabase(pg_data)
+            # TODO Need to wait to connect database. Always say 'Something went wrong' on first click
         pg_con = self.manager.pg_con
         pg_cursor = self.manager.pg_cursor
 
@@ -567,14 +568,14 @@ class DatabaseOptionsScreen(Screen):
                 pg_cursor.execute("INSERT INTO options VALUES(%s, %s)", local_options)
                 for account in local_data:
                     pg_cursor.execute(
-                        "INSERT INTO accounts VALUES(%s, %s, %s, %s, %s)", account
+                        "INSERT INTO accounts VALUES(%s, %s, %s, %s, %s, %s)", account
                     )
                 pg_con.commit()
 
                 toast("Sync Completed")
 
             toast("Please wait until Sync is Complete")
-            Thread(target=insert_data_to_remote_database).start()
+            Clock.schedule_once(lambda _: insert_data_to_remote_database())
 
         elif remote_data:
 
@@ -599,7 +600,7 @@ class DatabaseOptionsScreen(Screen):
                     )
                     for account in remote_data:
                         self.cursor.execute(
-                            "INSERT INTO accounts VALUES(?,?,?,?,?)", account
+                            "INSERT INTO accounts VALUES(?,?,?,?,?,?)", account
                         )
                     self.con.commit()
 

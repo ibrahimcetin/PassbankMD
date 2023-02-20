@@ -2,31 +2,39 @@ import os
 import string
 import random
 import shutil
-from threading import Thread
+from datetime import datetime
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.properties import StringProperty, DictProperty
 from kivy.animation import Animation
 from kivy.utils import platform
 from kivy.metrics import dp
+from kivy.clock import Clock
 
 from kivymd.uix.list import (
     OneLineIconListItem,
     TwoLineIconListItem,
     ThreeLineIconListItem,
 )
+from kivymd.uix.button import (
+    MDFlatButton,
+    MDRaisedButton,
+    MDRectangleFlatIconButton,
+    BaseButton,
+)
 from kivymd.uix.bottomsheet import MDCustomBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton
-from kivymd.uix.button import MDRaisedButton
-from kivymd.icon_definitions import md_icons
 from kivymd.toast import toast
+from kivymd.icon_definitions import md_icons
 
 from ..kivy_garden.qrcode import QRCodeWidget
+
+import pyotp
 
 
 class RVOneLineIconListItem(OneLineIconListItem):
@@ -81,8 +89,11 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
             content.height = no_animation_height
 
 
-class ContentCustomBottomSheet(MDBoxLayout):
+class EmptyTwoFactorAuthenticationContent(BoxLayout):
+    pass
 
+
+class ContentCustomBottomSheet(MDBoxLayout):
     dialog = None
 
     def __init__(self, **kwargs):
@@ -266,12 +277,114 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         self.dialog = MDDialog(
             title=f"{self.site} Password",
-            size_hint=(0.8, 0.22),
             text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
             buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
+
+    def showTwoFactorAuthentication(self):
+        def update(_):
+            totp_code = totp.now()
+            totp_remaining = totp.interval - datetime.now().timestamp() % totp.interval
+
+            self.dialog.text = f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]"
+
+        saved_twofa_code = self.getTwoFactorAuthenticationCode()
+
+        if saved_twofa_code is not None:
+            totp = pyotp.TOTP(saved_twofa_code)
+
+            totp_code = totp.now()
+            totp_remaining = totp.interval - datetime.now().timestamp() % totp.interval
+
+            update_event = Clock.schedule_interval(update, 1)
+
+            self.dialog = MDDialog(
+                title=f"{self.site} 2FA Code",
+                text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]",
+                buttons=[
+                    MDFlatButton(
+                        text="Remove 2FA",
+                        theme_text_color="Error",
+                        on_press=lambda x: self.saveTwoFactorAuthenticationCode(""),
+                    ),
+                    BaseButton(height=0.1, size_hint_x=None, width=270),
+                    MDFlatButton(text="Close", on_press=self.closeDialog),
+                    MDRectangleFlatIconButton(
+                        icon="content-copy",
+                        text="Copy",
+                        on_press=lambda x: [
+                            Clipboard.copy(totp.now()),
+                            toast(f"{self.site}'s 2FA Code Copied"),
+                        ],
+                    ),
+                ],
+                on_dismiss=lambda x: update_event.cancel(),
+            )
+            self.dialog.ids.text.text_color = [0, 0, 0]
+
+        else:
+            empty_2fa_content = EmptyTwoFactorAuthenticationContent()
+
+            self.dialog = MDDialog(
+                title=f"{self.site} 2FA Code",
+                type="custom",
+                content_cls=empty_2fa_content,
+                buttons=[
+                    MDRaisedButton(
+                        text="Save",
+                        on_press=lambda x: self.saveTwoFactorAuthenticationCode(
+                            empty_2fa_content.ids.two_factor_authentication_code_field.text
+                        ),
+                    ),
+                ],
+            )
+
+        self.dialog.open()
+
+    def saveTwoFactorAuthenticationCode(self, twofa_code):
+        encrypted = ""
+
+        if twofa_code != "":
+            twofa_code = twofa_code.translate(str.maketrans("", "", string.whitespace))
+
+            nonce = os.urandom(16)
+            encrypted = nonce + self.cipher.encrypt(nonce, twofa_code.encode(), None)
+            encrypted = encrypted.hex()
+
+        query = "UPDATE accounts SET twofa=? WHERE id=?"
+        self.cursor.execute(query, (encrypted, self._id))
+        self.con.commit()
+
+        if self.auto_backup:
+            shutil.copy2("pass.db", self.auto_backup_location)
+
+        if self.remote_database:
+            query = "UPDATE accounts SET twofa={} WHERE id={}".format(
+                repr(encrypted),
+                repr(self._id),
+            )
+            self.main_screen.manager.runRemoteDatabaseQuery(query)
+
+        self.closeDialog(None)
+
+    def getTwoFactorAuthenticationCode(self):
+        query = "SELECT twofa FROM accounts WHERE id=?"
+        self.cursor.execute(query, (self._id,))
+        db_twofa_code = self.cursor.fetchone()
+
+        if db_twofa_code[0] == "":
+            return None
+
+        db_twofa_code = db_twofa_code[0]
+
+        encrypted = bytes.fromhex(db_twofa_code)
+        saved_twofa_code = self.cipher.decrypt(
+            encrypted[:16], encrypted[16:], None
+        ).decode()
+
+        return saved_twofa_code
 
     def showQRCode(self):
         password = self.cipher.decrypt(
@@ -338,7 +451,6 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
 
 class MainScreen(Screen):
-
     accounts = None
 
     sort_by = None
@@ -426,12 +538,12 @@ class MainScreen(Screen):
 
             if updated_account:
                 self.cursor.execute(
-                    "UPDATE accounts SET site=?, email=?, username=?, password=? WHERE id=?",
+                    "UPDATE accounts SET site=?, email=?, username=?, password=?, twofa=? WHERE id=?",
                     (*account[1:], account[0]),
                 )
                 local_data.remove(updated_account)
             else:
-                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?)", account)
+                self.cursor.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)", account)
 
         sl_data = local_diff()
         for account in sl_data:
@@ -463,7 +575,7 @@ class MainScreen(Screen):
         self.cursor.execute("SELECT master_password, salt FROM options")
         local_options = self.cursor.fetchall()[0]
 
-        Thread(target=self.sync, args=(queries, local_data, local_options)).start()
+        Clock.schedule_once(lambda _: self.sync(queries, local_data, local_options))
 
     def getOptions(self):
         self.cursor.execute(

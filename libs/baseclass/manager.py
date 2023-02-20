@@ -1,8 +1,8 @@
 import sqlite3
-from threading import Thread
 
-from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
+from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
 
 from kivymd.theming import ThemeManager
 
@@ -28,7 +28,6 @@ from .optionsscreen import (
 
 
 class Manager(ScreenManager):
-
     con = None
     cursor = None
 
@@ -103,7 +102,7 @@ class Manager(ScreenManager):
         self.cursor = self.con.cursor()
 
         self.cursor.execute(
-            "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)"
+            "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT, twofa TEXT)"
         )
         self.cursor.execute(
             "CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT, sort_by TEXT, list_subtitles TEXT, animation_options TEXT, auto_backup INT, auto_backup_location TEXT, remote_database INT, db_name TEXT, db_user TEXT, db_pass TEXT, db_host TEXT, db_port TEXT, fast_login INT, auto_exit INT, password_length INT, password_suggestion_options TEXT)"
@@ -125,7 +124,7 @@ class Manager(ScreenManager):
                 self.pg_cursor = self.pg_con.cursor()
 
                 self.pg_cursor.execute(
-                    "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT)"
+                    "CREATE TABLE IF NOT EXISTS accounts (id TEXT, site TEXT, email TEXT, username TEXT, password TEXT, twofa TEXT)"
                 )
                 self.pg_cursor.execute(
                     "CREATE TABLE IF NOT EXISTS options (master_password TEXT, salt TEXT)"
@@ -137,30 +136,30 @@ class Manager(ScreenManager):
 
         if pg_data is not None:
             if all(pg_data):
-                t = Thread(target=connect)
-                t.start()
-                t.join()
+                Clock.schedule_once(lambda _: connect())
 
     def runRemoteDatabaseQuery(self, query):
         def run_query(query):
-            self.pg_cursor.execute(query)
-            self.pg_con.commit()
+            try:
+                self.pg_cursor.execute(query)
+                self.pg_con.commit()
 
-            self.internet_connection = True
+                self.internet_connection = True
+            except Exception as error:
+                print(error)
 
-        try:
-            Thread(target=run_query(query)).start()
-        except:
-            self.cursor.execute(
-                "INSERT INTO offline_queries (query) VALUES(?)", (query,)
-            )
-            self.con.commit()
+                self.cursor.execute(
+                    "INSERT INTO offline_queries (query) VALUES(?)", (query,)
+                )
+                self.con.commit()
 
-            self.internet_connection = False
+                self.internet_connection = False
+
+        Clock.schedule_once(lambda _: run_query(query))
 
     def createCipher(self, password, salt):
         kdf = Scrypt(
-            salt=salt, length=32, n=2 ** 14, r=2 ** 3, p=1, backend=default_backend()
+            salt=salt, length=32, n=2**14, r=2**3, p=1, backend=default_backend()
         )
 
         key = kdf.derive(password.encode())
@@ -209,9 +208,7 @@ class Manager(ScreenManager):
             "SELECT remote_database, db_name, db_user, db_pass, db_host, db_port FROM options"
         )
         pg_data = self.cursor.fetchone()
-        Thread(
-            target=self.connectRemoteDatabase, args=(pg_data,)
-        ).start()  # TODO improve this
+        self.connectRemoteDatabase(pg_data)
 
         self.checkMasterPasswordExists()
 

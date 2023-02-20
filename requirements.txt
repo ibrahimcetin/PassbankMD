@@ -4,3 +4,4 @@ cryptography==38.0.3
 psycopg2-binary==2.9.5
 qrcode==6.1
 pyinstaller==4.5.1
+pyotp==2.8.0

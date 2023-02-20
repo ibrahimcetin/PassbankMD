@@ -36,7 +36,7 @@
     MDTopAppBar:
         id: toolbar
         pos_hint: {"top": 1}
-        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["qrcode", lambda button: root.showQRCode()], ["eye-outline", lambda button: root.showPassword()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
+        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["qrcode", lambda button: root.showQRCode()], ["eye-outline", lambda button: root.showPassword()], ["two-factor-authentication", lambda button: root.showTwoFactorAuthentication()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
 
     MDBoxLayout:
         id: box_layout
@@ -94,6 +94,16 @@
         Widget:
             size_hint_y: None
             height: dp(20)
+
+
+<EmptyTwoFactorAuthenticationContent>
+    orientation: "vertical"
+    size_hint_y: None
+    height: "50dp"
+
+    MDTextField:
+        id: two_factor_authentication_code_field
+        hint_text: "Two Factor Authentication Code"
 
 
 <MainScreen>
