@@ -1,21 +1,21 @@
-import os
-
 from kivy.lang import Builder
 from kivy.uix.screenmanager import FadeTransition, NoTransition
 
 from kivymd.app import MDApp
 
 from libs.baseclass.manager import Manager
+from libs.baseclass.utils import get_working_dir
 
 
-kv_dir = os.path.join("libs", "kv")
-kv_files = os.listdir(kv_dir)
+working_dir = get_working_dir(__file__)
+
+kv_dir = working_dir / "libs" / "kv"
+kv_files = kv_dir.iterdir()
 for kv_file in kv_files:
-    Builder.load_file(os.path.join(kv_dir, kv_file))
+    Builder.load_file(kv_file.as_posix())
 
 
 class Passbank(MDApp):
-
     manager = None
 
     transition_animation = None

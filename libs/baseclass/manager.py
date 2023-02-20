@@ -25,6 +25,8 @@ from .optionsscreen import (
     PasswordSuggestionOptionsScreen,
 )
 
+from .utils import get_working_dir
+
 
 class Manager(ScreenManager):
     con = None
@@ -96,8 +98,15 @@ class Manager(ScreenManager):
                 self.setSecurityOptionsScreen()
                 return True
 
+    def getDatabaseLocation(self):
+        working_dir = get_working_dir(__file__)
+
+        return working_dir / "pass.db"
+
     def connectDatabase(self):
-        self.con = sqlite3.connect("pass.db", check_same_thread=False)
+        database_location = self.getDatabaseLocation()
+
+        self.con = sqlite3.connect(database_location, check_same_thread=False)
         self.cursor = self.con.cursor()
 
         self.cursor.execute(
