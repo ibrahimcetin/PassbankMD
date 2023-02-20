@@ -290,7 +290,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             totp_code = totp.now()
             totp_remaining = totp.interval - datetime.now().timestamp() % totp.interval
 
-            self.dialog.text = f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]"
+            self.dialog.text = f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]"
 
         saved_twofa_code = self.getTwoFactorAuthenticationCode()
 
@@ -304,14 +304,14 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
             self.dialog = MDDialog(
                 title=f"{self.site} 2FA Code",
-                text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]",
+                text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]",
                 buttons=[
                     MDFlatButton(
                         text="Remove 2FA",
                         theme_text_color="Error",
                         on_press=lambda x: self.saveTwoFactorAuthenticationCode(""),
                     ),
-                    BaseButton(height=0.1, size_hint_x=None, width=270),
+                    BaseButton(height=0.1, size_hint_x=None, width=dp(270)),
                     MDFlatButton(text="Close", on_press=self.closeDialog),
                     MDRectangleFlatIconButton(
                         icon="content-copy",
