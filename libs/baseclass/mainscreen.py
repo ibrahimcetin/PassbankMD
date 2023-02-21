@@ -130,6 +130,8 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.auto_backup_location = kwargs.get("auto_backup_location")
         self.remote_database = kwargs.get("remote_database")
 
+        self.database_location = self.main_screen.manager.getDatabaseLocation()
+
     def copyPassword(self):
         password = self.cipher.decrypt(
             self.encrypted[:16], self.encrypted[16:], None
@@ -235,7 +237,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 self.main_screen.manager.runRemoteDatabaseQuery(query)
 
         if self.auto_backup and len(changed) > 0:  # auto backup
-            shutil.copy2("pass.db", self.auto_backup_location)
+            shutil.copy2(self.database_location, self.auto_backup_location)
 
         self.main_screen.initUI()  # refresh main screen
 
@@ -264,7 +266,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.main_screen.initUI()  # refresh main screen
 
         if self.auto_backup:
-            shutil.copy2("pass.db", self.auto_backup_location)
+            shutil.copy2(self.database_location, self.auto_backup_location)
 
         if self.remote_database:
             query = "DELETE FROM accounts WHERE id={}".format(
@@ -360,7 +362,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.con.commit()
 
         if self.auto_backup:
-            shutil.copy2("pass.db", self.auto_backup_location)
+            shutil.copy2(self.database_location, self.auto_backup_location)
 
         if self.remote_database:
             query = "UPDATE accounts SET twofa={} WHERE id={}".format(

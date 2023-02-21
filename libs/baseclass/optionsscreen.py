@@ -380,8 +380,9 @@ class DatabaseOptionsScreen(Screen):
         )
         self.con.commit()
 
-        if self.auto_backup == 1:
-            shutil.copy2("pass.db", self.auto_backup_location)
+        if self.auto_backup == 1 and self.manager is not None:
+            database_location = self.manager.getDatabaseLocation()
+            shutil.copy2(database_location, self.auto_backup_location)
 
     def autoBackupLocationFunction(self):
         self.file_manager = MDFileManager(
@@ -397,7 +398,8 @@ class DatabaseOptionsScreen(Screen):
         if os.path.isdir(path):
             self.exit_manager()
 
-            shutil.copy2("pass.db", path)
+            database_location = self.manager.getDatabaseLocation()
+            shutil.copy2(database_location, path)
 
             self.cursor.execute("UPDATE options SET auto_backup_location = ?", (path,))
             self.con.commit()
@@ -436,7 +438,9 @@ class DatabaseOptionsScreen(Screen):
     def backup_select_path(self, path):
         self.exit_manager()
 
-        shutil.copy2("pass.db", path)
+        database_location = self.manager.getDatabaseLocation()
+        shutil.copy2(database_location, path)
+
         toast("Database Backup was Successfully Created")
 
     def restore_select_path(self, path):
@@ -481,7 +485,8 @@ class DatabaseOptionsScreen(Screen):
             self.exit_manager()
             self.dismiss_dialog()
 
-            shutil.copy2(path, "pass.db")
+            database_location = self.manager.getDatabaseLocation()
+            shutil.copy2(path, database_location)
 
             self.manager.cipher = cipher
             self.getOptions()

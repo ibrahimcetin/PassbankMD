@@ -51,7 +51,8 @@ class AddAccountScreen(Screen):
                 self.manager.setMainScreen()  # refresh main screen
 
                 if self.auto_backup:  # auto backup
-                    shutil.copy2("pass.db", self.auto_backup_location)
+                    database_location = self.manager.getDatabaseLocation()
+                    shutil.copy2(database_location, self.auto_backup_location)
 
                 if self.remote_database:
                     query = "INSERT INTO accounts VALUES({},{},{},{},{},{})".format(
