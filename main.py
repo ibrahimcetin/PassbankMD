@@ -22,6 +22,8 @@ class Passbank(MDApp):
     auto_exit = None
 
     def build(self):
+        self.icon = "data/icon.png"
+
         self.manager = Manager(
             transition=FadeTransition(duration=0.2, clearcolor=self.theme_cls.bg_dark)
         )
