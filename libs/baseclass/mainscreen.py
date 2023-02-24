@@ -91,8 +91,14 @@ class MyMDCustomBottomSheet(MDCustomBottomSheet):
             content.height = no_animation_height
 
 
-class EmptyTwoFactorAuthenticationContent(BoxLayout):
-    pass
+class TextFieldDialogContent(BoxLayout):
+    def __init__(self, hint_text, **kwargs):
+        self.hint_text = hint_text
+
+        super().__init__(**kwargs)
+
+    def on_text(self):
+        pass
 
 
 class ContentCustomBottomSheet(MDBoxLayout):
@@ -311,7 +317,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                     MDFlatButton(
                         text="Remove 2FA",
                         theme_text_color="Error",
-                        on_press=lambda x: self.saveTwoFactorAuthenticationCode(""),
+                        on_press=lambda x: self.deleteTwoFactorAuthenticationDialog(),
                     ),
                     BaseButton(height=0.1, size_hint_x=None, width=dp(270)),
                     MDFlatButton(text="Close", on_press=self.closeDialog),
@@ -329,17 +335,20 @@ class ContentCustomBottomSheet(MDBoxLayout):
             self.dialog.ids.text.text_color = [0, 0, 0]
 
         else:
-            empty_2fa_content = EmptyTwoFactorAuthenticationContent()
+            empty_2fa_content = TextFieldDialogContent(
+                hint_text="Two Factor Authentication Code"
+            )
 
             self.dialog = MDDialog(
                 title=f"{self.site} 2FA Code",
                 type="custom",
                 content_cls=empty_2fa_content,
                 buttons=[
+                    MDFlatButton(text="Cancel", on_press=self.closeDialog),
                     MDRaisedButton(
                         text="Save",
                         on_press=lambda x: self.saveTwoFactorAuthenticationCode(
-                            empty_2fa_content.ids.two_factor_authentication_code_field.text
+                            empty_2fa_content.ids.text_field.text
                         ),
                     ),
                 ],
@@ -348,6 +357,9 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.open()
 
     def saveTwoFactorAuthenticationCode(self, twofa_code):
+        if twofa_code is None:
+            twofa_code = ""
+
         encrypted = ""
 
         if twofa_code != "":
@@ -389,6 +401,42 @@ class ContentCustomBottomSheet(MDBoxLayout):
         ).decode()
 
         return saved_twofa_code
+
+    def deleteTwoFactorAuthenticationDialog(self):
+        def check_disabled(component, check):
+            component.disabled = check()
+
+        dialog_content = TextFieldDialogContent(
+            hint_text="Enter Site Name to Confirm Deletion"
+        )
+
+        delete_button = MDRaisedButton(
+            text="Delete",
+            md_bg_color="red",
+            on_press=lambda _: [
+                self.saveTwoFactorAuthenticationCode(None),
+                dialog.dismiss(),
+                toast("2FA Code Successfully Deleted"),
+            ],
+            disabled=True,
+        )
+
+        dialog_content.on_text = lambda: check_disabled(
+            delete_button,
+            lambda: dialog_content.ids.text_field.text != self.site,
+        )
+
+        dialog = MDDialog(
+            title=f"2FA Code Delete Confirmation",
+            type="custom",
+            content_cls=dialog_content,
+            buttons=[
+                MDFlatButton(text="Cancel", on_press=lambda _: dialog.dismiss()),
+                delete_button,
+            ],
+        )
+
+        dialog.open()
 
     def showQRCode(self):
         password = self.cipher.decrypt(
