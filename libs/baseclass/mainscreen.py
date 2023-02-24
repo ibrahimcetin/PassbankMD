@@ -357,17 +357,29 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog.open()
 
     def saveTwoFactorAuthenticationCode(self, twofa_code):
-        if twofa_code is None:
-            twofa_code = ""
+        def validate_twofa_code(twofa_code):
+            try:
+                pyotp.TOTP(twofa_code).now()
+                return True
+            except Exception as error:
+                toast("Invalid 2FA Code")
+                return False
 
-        encrypted = ""
-
-        if twofa_code != "":
+        def encrypt_twofa_code(twofa_code):
             twofa_code = twofa_code.translate(str.maketrans("", "", string.whitespace))
 
             nonce = os.urandom(16)
             encrypted = nonce + self.cipher.encrypt(nonce, twofa_code.encode(), None)
-            encrypted = encrypted.hex()
+
+            return encrypted.hex()
+
+        encrypted = ""
+
+        if not (twofa_code == "" or twofa_code is None):
+            if validate_twofa_code(twofa_code) == False:
+                return
+
+            encrypted = encrypt_twofa_code(twofa_code)
 
         query = "UPDATE accounts SET twofa=? WHERE id=?"
         self.cursor.execute(query, (encrypted, self._id))
