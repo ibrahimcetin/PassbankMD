@@ -361,7 +361,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
             try:
                 pyotp.TOTP(twofa_code).now()
                 return True
-            except Exception as error:
+            except Exception:
                 toast("Invalid 2FA Code")
                 return False
 
@@ -376,7 +376,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         encrypted = ""
 
         if not (twofa_code == "" or twofa_code is None):
-            if validate_twofa_code(twofa_code) == False:
+            if validate_twofa_code(twofa_code) is False:
                 return
 
             encrypted = encrypt_twofa_code(twofa_code)
@@ -439,7 +439,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         )
 
         dialog = MDDialog(
-            title=f"2FA Code Delete Confirmation",
+            title="2FA Code Delete Confirmation",
             type="custom",
             content_cls=dialog_content,
             buttons=[

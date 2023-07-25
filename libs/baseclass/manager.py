@@ -86,7 +86,7 @@ class Manager(ScreenManager):
                 self.setMainScreen()
                 return True  # do not exit the app
 
-            elif self.file_manager_open == True:
+            elif self.file_manager_open is True:
                 self.database_options_screen.file_manager.back()
                 return True
 
