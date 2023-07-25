@@ -28,72 +28,93 @@
             size: self.size
 
 
-<ContentCustomBottomSheet>:
-    orientation: "vertical"
-    size_hint_y: None
-    height: box_layout.height + toolbar.height
+<AccountDetailSheet>:
+    id: bottom_sheet
+    type: "modal"
+    bg_color: "white"
+    adaptive_height: True
 
-    MDTopAppBar:
-        id: toolbar
-        pos_hint: {"top": 1}
-        right_action_items: [["trash-can-outline", lambda button: root.deleteAccountDialog()], ["qrcode", lambda button: root.showQRCode()], ["eye-outline", lambda button: root.showPassword()], ["two-factor-authentication", lambda button: root.showTwoFactorAuthentication()], ["content-copy", lambda button: root.copyPassword()], ["content-save", lambda button: root.updateAccount(site_field, confirm_new_password_field)]]
+    MDBottomSheetDragHandle:
+        MDBottomSheetDragHandleTitle:
+            id: sheet_title
+            adaptive_height: True
+            font_style: "H6"
+            pos_hint: {"center_y": .5}
 
-    MDBoxLayout:
-        id: box_layout
-        orientation: "vertical"
-        adaptive_height: True
-        size_hint_x: .7
-        pos_hint: {"center_x": .5, "center_y": .5}
-        padding: dp(10)
-        spacing: dp(10)
+        MDBottomSheetDragHandleButton:
+            icon: "trash-can-outline"
+            on_press: root.deleteAccountDialog()
 
-        MDTextField:
-            id: site_field
-            hint_text: "Site"
-            write_tab: False
+        MDBottomSheetDragHandleButton:
+            icon: "qrcode"
+            on_press: root.showQRCode()
 
-            helper_text_mode: "on_error"
-            on_text: root.checkSiteField(self, self.text)
+        MDBottomSheetDragHandleButton:
+            icon: "eye-outline"
+            on_press: root.showPassword()
 
-        MDTextField:
-            id: email_field
-            hint_text: "EMail"
-            write_tab: False
+        MDBottomSheetDragHandleButton:
+            icon: "two-factor-authentication"
+            on_press: root.showTwoFactorAuthentication()
 
-        MDTextField:
-            id: username_field
-            hint_text: "Username"
-            write_tab: False
+        MDBottomSheetDragHandleButton:
+            icon: "content-copy"
+            on_press: root.copyPassword()
 
-        MDSeparator:
+        MDBottomSheetDragHandleButton:
+            icon: "content-save"
+            on_press: root.updateAccount(site_field, confirm_new_password_field)
+
+    MDBottomSheetContent:
+        padding: ["16dp", "0dp", "16dp", "24dp"]
 
         MDBoxLayout:
+            orientation: "vertical"
             adaptive_height: True
 
             MDTextField:
-                id: new_password_field
-                hint_text: "Password"
+                id: site_field
+                hint_text: "Site"
+                write_tab: False
+
+                helper_text_mode: "on_error"
+                on_text: root.checkSiteField(self, self.text)
+
+            MDTextField:
+                id: email_field
+                hint_text: "EMail"
+                write_tab: False
+
+            MDTextField:
+                id: username_field
+                hint_text: "Username"
+                write_tab: False
+
+            MDSeparator:
+
+            MDBoxLayout:
+                adaptive_height: True
+
+                MDTextField:
+                    id: new_password_field
+                    hint_text: "New Password"
+                    password: True
+                    write_tab: False
+
+                MDIconButton:
+                    id: show_new_password_button
+                    icon: "eye-outline"
+                    on_press: root.showNewPasswordButton(self, new_password_field, confirm_new_password_field)
+
+            MDTextField:
+                id: confirm_new_password_field
+                hint_text: "New Password Confirm"
                 password: True
                 write_tab: False
 
-            MDIconButton:
-                id: show_new_password_button
-                icon: "eye-outline"
-                on_press: root.showNewPasswordButton(self, new_password_field, confirm_new_password_field)
-
-        MDTextField:
-            id: confirm_new_password_field
-            hint_text: "New Password Confirm"
-            password: True
-            write_tab: False
-
-            helper_text: "Passwords not match"
-            helper_text_mode: "on_error"
-            on_text: root.checkConfirmField(self, self.text)
-
-        Widget:
-            size_hint_y: None
-            height: dp(20)
+                helper_text: "Passwords not match"
+                helper_text_mode: "on_error"
+                on_text: root.checkConfirmField(self, self.text)
 
 
 <TextFieldDialogContent>
@@ -107,8 +128,9 @@
         on_text:
             root.on_text()
 
-
 <MainScreen>
+    id: main_screen
+
     MDBoxLayout:
         orientation: 'vertical'
         padding: [0, dp(10), 0, 0]
@@ -148,3 +170,8 @@
     MDFloatingActionButtonSpeedDial:
         data: root.button_data
         root_button_anim: True
+
+    AccountDetailSheet:
+        id: bottom_sheet
+        max_opening_height: min(self.height, main_screen.height)
+        default_opening_height: self.max_opening_height
