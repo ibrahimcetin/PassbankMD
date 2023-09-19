@@ -21,6 +21,7 @@ from kivymd.uix.list import (
 from kivymd.uix.button import (
     MDFlatButton,
     MDRaisedButton,
+    MDRectangleFlatButton,
     MDRectangleFlatIconButton,
     BaseButton,
 )
@@ -71,8 +72,6 @@ class TextFieldDialogContent(BoxLayout):
 
 
 class AccountDetailSheet(MDBottomSheet):
-    dialog = None
-
     def open(self, *args, **kwargs) -> None:
         # to refresh screen after account delete or update
         self.main_screen = kwargs.get("main_screen")
@@ -219,14 +218,18 @@ class AccountDetailSheet(MDBottomSheet):
             size_hint=(0.8, 0.22),
             text=f"\nYou will delete [b]{self.site}[/b]. Are you sure?",
             buttons=[
-                MDFlatButton(text="Yes", on_press=self.deleteAccount),
-                MDFlatButton(text="No", on_press=self.closeDialog),
+                MDRectangleFlatButton(text="No", on_press=self.closeDialog),
+                MDFlatButton(
+                    text="Yes",
+                    theme_text_color="Error",
+                    on_press=lambda _: self.deleteAccount(),
+                ),
             ],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
 
-    def deleteAccount(self, button):
+    def deleteAccount(self):
         self.cursor.execute("DELETE FROM accounts WHERE id=?", (self._id,))
         self.con.commit()
 
@@ -254,7 +257,7 @@ class AccountDetailSheet(MDBottomSheet):
         self.dialog = MDDialog(
             title=f"{self.site} Password",
             text=f"\n[font={FONTS_DIR}/JetBrainsMono-Bold.ttf]{password}[/font]",
-            buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
+            buttons=[MDFlatButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
@@ -311,7 +314,7 @@ class AccountDetailSheet(MDBottomSheet):
                 content_cls=empty_2fa_content,
                 buttons=[
                     MDFlatButton(text="Cancel", on_press=self.closeDialog),
-                    MDRaisedButton(
+                    MDRectangleFlatButton(
                         text="Save",
                         on_press=lambda x: self.saveTwoFactorAuthenticationCode(
                             empty_2fa_content.ids.text_field.text
