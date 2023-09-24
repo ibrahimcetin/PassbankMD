@@ -4,10 +4,10 @@ from kivy.uix.screenmanager import FadeTransition, NoTransition
 from kivymd.app import MDApp
 
 from libs.baseclass.manager import Manager
-from libs.baseclass.utils import get_working_dir
+from libs.baseclass.utils import find_bundle_dir
 
 
-working_dir = get_working_dir(__file__)
+working_dir = find_bundle_dir(__file__)
 
 kv_dir = working_dir / "libs" / "kv"
 kv_files = kv_dir.iterdir()

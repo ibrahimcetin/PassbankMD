@@ -25,7 +25,7 @@ from .optionsscreen import (
     PasswordSuggestionOptionsScreen,
 )
 
-from .utils import get_working_dir
+from .utils import find_bundle_dir
 
 
 class Manager(ScreenManager):
@@ -99,7 +99,7 @@ class Manager(ScreenManager):
                 return True
 
     def getDatabaseLocation(self):
-        working_dir = get_working_dir(__file__)
+        working_dir = find_bundle_dir(__file__)
 
         return working_dir / "pass.db"
 
