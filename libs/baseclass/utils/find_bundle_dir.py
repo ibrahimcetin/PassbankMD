@@ -1,9 +1,11 @@
 import sys
 from pathlib import Path
 
+from .is_frozen import is_frozen
+
 
 def find_bundle_dir(file):
-    if getattr(sys, "frozen", False):
+    if is_frozen():
         # The application is frozen
         bundle_dir = Path(sys._MEIPASS)
 
