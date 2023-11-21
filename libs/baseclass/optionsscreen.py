@@ -4,8 +4,8 @@ import string
 import random
 import sqlite3
 from functools import partial
+from threading import Thread
 
-from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
@@ -577,6 +577,8 @@ class DatabaseOptionsScreen(Screen):
         elif local_data:
 
             def insert_data_to_remote_database():
+                toast("Please wait until Sync is Complete")
+
                 pg_cursor.execute("INSERT INTO options VALUES(%s, %s)", local_options)
                 for account in local_data:
                     pg_cursor.execute(
@@ -586,8 +588,7 @@ class DatabaseOptionsScreen(Screen):
 
                 toast("Sync Completed")
 
-            toast("Please wait until Sync is Complete")
-            Clock.schedule_once(lambda _: insert_data_to_remote_database())
+            Thread(target=insert_data_to_remote_database).start()
 
         elif remote_data:
 

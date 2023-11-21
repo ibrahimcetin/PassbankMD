@@ -1,6 +1,6 @@
 import sqlite3
+from threading import Thread
 
-from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, FadeTransition, NoTransition
 
@@ -144,7 +144,7 @@ class Manager(ScreenManager):
 
         if pg_data is not None:
             if all(pg_data):
-                Clock.schedule_once(lambda _: connect())
+                Thread(target=connect).start()
 
     def runRemoteDatabaseQuery(self, query):
         def run_query(query):
@@ -163,7 +163,7 @@ class Manager(ScreenManager):
 
                 self.internet_connection = False
 
-        Clock.schedule_once(lambda _: run_query(query))
+        Thread(target=run_query, args=(query,)).start()
 
     def createCipher(self, password, salt):
         kdf = Scrypt(salt=salt, length=32, n=2**14, r=2**3, p=1)

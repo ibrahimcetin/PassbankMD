@@ -3,6 +3,7 @@ import string
 import random
 import shutil
 from datetime import datetime
+from threading import Thread
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.label import Label
@@ -652,7 +653,7 @@ class MainScreen(Screen):
         self.cursor.execute("SELECT master_password, salt FROM options")
         local_options = self.cursor.fetchall()[0]
 
-        Clock.schedule_once(lambda _: self.sync(queries, local_data, local_options))
+        Thread(target=self.sync, args=(queries, local_data, local_options)).start()
 
     def getOptions(self):
         self.cursor.execute(
