@@ -3,6 +3,7 @@ import string
 import random
 import shutil
 from datetime import datetime
+from threading import Thread
 
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
@@ -29,11 +30,18 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 from kivymd.icon_definitions import md_icons
 
-from kivy_garden.qrcode import QRCodeWidget
-
 import pyotp
 
-from .utils import get_user_directory_path
+from .utils import get_user_directory_path, find_bundle_dir, is_frozen
+
+if not is_frozen():
+    # Pyinstaller does not include qrcode kv file in the bundle
+    # I cannot find a solution without adding qrcode source code
+    # in the project. So, I prefer to disable it when app is frozen
+    # Note: I may remove this feature in the future
+    from kivy_garden import qrcode
+
+FONTS_DIR = find_bundle_dir(__file__) / "assets" / "fonts"
 
 
 class RVOneLineIconListItem(OneLineIconListItem):
@@ -89,6 +97,10 @@ class AccountDetailSheet(MDBottomSheet):
         self.remote_database = kwargs.get("remote_database")
 
         self.database_location = self.main_screen.manager.getDatabaseLocation()
+
+        if is_frozen():
+            # disable qrcode if app is frozen
+            self.ids.toolbar.right_action_items.pop(1)
 
         return super().open(*args)
 
@@ -241,7 +253,7 @@ class AccountDetailSheet(MDBottomSheet):
 
         self.dialog = MDDialog(
             title=f"{self.site} Password",
-            text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf]{password}[/font]",
+            text=f"\n[font={FONTS_DIR}/JetBrainsMono-Bold.ttf]{password}[/font]",
             buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
@@ -252,7 +264,7 @@ class AccountDetailSheet(MDBottomSheet):
             totp_code = totp.now()
             totp_remaining = totp.interval - datetime.now().timestamp() % totp.interval
 
-            self.dialog.text = f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]"
+            self.dialog.text = f"\n[font={FONTS_DIR}/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]"
 
         saved_twofa_code = self.getTwoFactorAuthenticationCode()
 
@@ -266,7 +278,7 @@ class AccountDetailSheet(MDBottomSheet):
 
             self.dialog = MDDialog(
                 title=f"{self.site} 2FA Code",
-                text=f"\n[font=assets/fonts/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]",
+                text=f"\n[font={FONTS_DIR}/JetBrainsMono-Bold.ttf][size=20dp]{totp_code[:3]} {totp_code[3:]}[/size]\n\n\n[color=#808080]Changes in {int(totp_remaining)} seconds[/color][/font]",
                 buttons=[
                     MDFlatButton(
                         text="Remove 2FA",
@@ -410,18 +422,20 @@ class AccountDetailSheet(MDBottomSheet):
         ).decode()
 
         layout = MDBoxLayout(size_hint_y=None, height=dp(120))
-        layout.add_widget(
-            QRCodeWidget(
-                data=password,
-                show_border=False,
-                background_color=[
-                    0.9607843137254902,
-                    0.9607843137254902,
-                    0.9607843137254902,
-                    1.0,
-                ],
+        if not is_frozen():
+            # active qrcode if app is not frozen
+            layout.add_widget(
+                QRCodeWidget(  # noqa: F821
+                    data=password,
+                    show_border=False,
+                    background_color=[
+                        0.9607843137254902,
+                        0.9607843137254902,
+                        0.9607843137254902,
+                        1.0,
+                    ],
+                )
             )
-        )
         self.dialog = MDDialog(
             title="QR Code",
             type="custom",
@@ -593,7 +607,7 @@ class MainScreen(MDScreen):
         self.cursor.execute("SELECT master_password, salt FROM options")
         local_options = self.cursor.fetchall()[0]
 
-        Clock.schedule_once(lambda _: self.sync(queries, local_data, local_options))
+        Thread(target=self.sync, args=(queries, local_data, local_options)).start()
 
     def getOptions(self):
         self.cursor.execute(

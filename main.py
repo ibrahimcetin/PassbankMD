@@ -1,13 +1,21 @@
+import os
+from libs.baseclass.utils import is_frozen
+
+# Frozen executable will crash if kivy attempts to write logs to the console
+# To fix it, simply check if it is frozen and disable the console logs
+if is_frozen():
+    os.environ["KIVY_NO_CONSOLELOG"] = "1"
+
 from kivy.lang import Builder
 from kivy.uix.screenmanager import FadeTransition, NoTransition
 
 from kivymd.app import MDApp
 
 from libs.baseclass.manager import Manager
-from libs.baseclass.utils import get_working_dir
+from libs.baseclass.utils import find_bundle_dir
 
 
-working_dir = get_working_dir(__file__)
+working_dir = find_bundle_dir(__file__)
 
 kv_dir = working_dir / "libs" / "kv"
 kv_files = kv_dir.iterdir()
@@ -74,4 +82,5 @@ class Passbank(MDApp):
         self.auto_exit = bool(options[1])
 
 
-Passbank().run()
+if __name__ == "__main__":
+    Passbank().run()

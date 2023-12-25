@@ -1,7 +1,9 @@
-from .get_working_dir import get_working_dir
+from .find_bundle_dir import find_bundle_dir
 from .get_user_directory_path import get_user_directory_path
+from .is_frozen import is_frozen
 
 __all__ = [
-    "get_working_dir",
+    "find_bundle_dir",
     "get_user_directory_path",
+    "is_frozen",
 ]
