@@ -425,7 +425,7 @@ class AccountDetailSheet(MDBottomSheet):
         if not is_frozen():
             # active qrcode if app is not frozen
             layout.add_widget(
-                QRCodeWidget(  # noqa: F821
+                qrcode.QRCodeWidget(  # noqa: F821
                     data=password,
                     show_border=False,
                     background_color=[
