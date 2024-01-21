@@ -31,8 +31,21 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['data\\icon.ico'],
+    icon=['data/icon.ico'],
 )
+
+app = BUNDLE(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='Passbank.app',
+    icon='data/icon.png',
+    bundle_identifier='dev.ibrahimcetin.passbank',
+)
+
 coll = COLLECT(
     exe,
     a.binaries,

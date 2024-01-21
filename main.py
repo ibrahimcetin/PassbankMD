@@ -1,11 +1,3 @@
-import os
-from libs.baseclass.utils import is_frozen
-
-# Frozen executable will crash if kivy attempts to write logs to the console
-# To fix it, simply check if it is frozen and disable the console logs
-if is_frozen():
-    os.environ["KIVY_NO_CONSOLELOG"] = "1"
-
 from kivy.lang import Builder
 from kivy.uix.screenmanager import FadeTransition, NoTransition
 
