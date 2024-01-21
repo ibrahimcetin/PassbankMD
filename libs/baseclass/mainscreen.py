@@ -5,17 +5,14 @@ import shutil
 from datetime import datetime
 from threading import Thread
 
-from kivy.uix.screenmanager import Screen
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.core.clipboard import Clipboard
-from kivy.core.window import Window
 from kivy.properties import StringProperty, DictProperty
-from kivy.animation import Animation
-from kivy.utils import platform
 from kivy.metrics import dp
 from kivy.clock import Clock
 
+from kivymd.uix.screen import MDScreen
 from kivymd.uix.list import (
     OneLineIconListItem,
     TwoLineIconListItem,
@@ -24,10 +21,11 @@ from kivymd.uix.list import (
 from kivymd.uix.button import (
     MDFlatButton,
     MDRaisedButton,
+    MDRectangleFlatButton,
     MDRectangleFlatIconButton,
     BaseButton,
 )
-from kivymd.uix.bottomsheet import MDCustomBottomSheet
+from kivymd.uix.bottomsheet import MDBottomSheet
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
@@ -63,42 +61,6 @@ class OfflineLabel(Label):
     pass
 
 
-class MyMDCustomBottomSheet(MDCustomBottomSheet):
-    def on_open(self):
-        Window.softinput_mode = "pan"
-
-        return super().on_open()
-
-    def on_pre_dismiss(self):
-        if self.animation:
-            Animation(height=0, d=self.duration_opening).start(self.layout)
-            Animation(height=0, d=self.duration_opening).start(self.content)
-
-    def on_dismiss(self):
-        Window.softinput_mode = ""
-
-        return super().on_dismiss()
-
-    def resize_content_layout(self, content, layout, interval=0):
-        if platform == "android":
-            height = layout.height + dp(10)
-            no_animation_height = height + dp(50)
-        else:
-            height = layout.height
-            no_animation_height = height + dp(40)
-
-        if self.animation:
-            self.content = content
-            self.layout = layout
-
-            Animation(height=height, d=self.duration_opening).start(self.layout)
-            Animation(height=height, d=self.duration_opening).start(self.content)
-        else:
-            # I think I found a simple solution.
-            layout.height = no_animation_height
-            content.height = no_animation_height
-
-
 class TextFieldDialogContent(BoxLayout):
     def __init__(self, hint_text, **kwargs):
         self.hint_text = hint_text
@@ -109,15 +71,10 @@ class TextFieldDialogContent(BoxLayout):
         pass
 
 
-class ContentCustomBottomSheet(MDBoxLayout):
-    dialog = None
-
-    def __init__(self, **kwargs):
-        super().__init__()
-
-        self.main_screen = kwargs.get(
-            "main_screen"
-        )  # for refresh screen after account delete or update
+class AccountDetailSheet(MDBottomSheet):
+    def open(self, *args, **kwargs) -> None:
+        # to refresh screen after account delete or update
+        self.main_screen = kwargs.get("main_screen")
 
         self.con = kwargs.get("con")
         self.cursor = kwargs.get("cursor")
@@ -125,17 +82,11 @@ class ContentCustomBottomSheet(MDBoxLayout):
 
         self._id = kwargs.get("_id")
         self.site = kwargs.get("site")
-        self.email = kwargs.get("email")
-        self.username = kwargs.get("username")
+        self.email = kwargs.get("email", "").strip()
+        self.username = kwargs.get("username", "").strip()
         self.encrypted = kwargs.get("encrypted")
 
-        if self.email == " ":
-            self.email = ""
-
-        if self.username == " ":
-            self.username = ""
-
-        self.ids.toolbar.title = self.site
+        self.ids.sheet_title.text = self.site
         self.ids.site_field.text = self.site
         self.ids.email_field.text = self.email
         self.ids.username_field.text = self.username
@@ -149,6 +100,8 @@ class ContentCustomBottomSheet(MDBoxLayout):
         if is_frozen():
             # disable qrcode if app is frozen
             self.ids.toolbar.right_action_items.pop(1)
+
+        return super().open(*args)
 
     def copyPassword(self):
         password = self.cipher.decrypt(
@@ -265,14 +218,18 @@ class ContentCustomBottomSheet(MDBoxLayout):
             size_hint=(0.8, 0.22),
             text=f"\nYou will delete [b]{self.site}[/b]. Are you sure?",
             buttons=[
-                MDFlatButton(text="Yes", on_press=self.deleteAccount),
-                MDFlatButton(text="No", on_press=self.closeDialog),
+                MDRectangleFlatButton(text="No", on_press=self.closeDialog),
+                MDFlatButton(
+                    text="Yes",
+                    theme_text_color="Error",
+                    on_press=lambda _: self.deleteAccount(),
+                ),
             ],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
 
-    def deleteAccount(self, button):
+    def deleteAccount(self):
         self.cursor.execute("DELETE FROM accounts WHERE id=?", (self._id,))
         self.con.commit()
 
@@ -300,7 +257,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         self.dialog = MDDialog(
             title=f"{self.site} Password",
             text=f"\n[font={FONTS_DIR}/JetBrainsMono-Bold.ttf]{password}[/font]",
-            buttons=[MDRaisedButton(text="Close", on_press=self.closeDialog)],
+            buttons=[MDFlatButton(text="Close", on_press=self.closeDialog)],
         )
         self.dialog.ids.text.text_color = [0, 0, 0]
         self.dialog.open()
@@ -357,7 +314,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
                 content_cls=empty_2fa_content,
                 buttons=[
                     MDFlatButton(text="Cancel", on_press=self.closeDialog),
-                    MDRaisedButton(
+                    MDRectangleFlatButton(
                         text="Save",
                         on_press=lambda x: self.saveTwoFactorAuthenticationCode(
                             empty_2fa_content.ids.text_field.text
@@ -528,7 +485,7 @@ class ContentCustomBottomSheet(MDBoxLayout):
         instance.error = False
 
 
-class MainScreen(Screen):
+class MainScreen(MDScreen):
     accounts = None
 
     sort_by = None
@@ -785,22 +742,17 @@ class MainScreen(Screen):
         toast("Clipboard Cleaned")
 
     def openBottomSheet(self, _id, site, email, username, encrypted):
-        self.bottom_sheet = MyMDCustomBottomSheet(
-            screen=ContentCustomBottomSheet(
-                main_screen=self,
-                con=self.con,
-                cursor=self.cursor,
-                cipher=self.cipher,
-                _id=_id,
-                site=site,
-                email=email,
-                username=username,
-                encrypted=encrypted,
-                auto_backup=self.auto_backup,
-                auto_backup_location=self.auto_backup_location,
-                remote_database=self.remote_database,
-            ),
-            animation=self.bottomsheet_animation,
-            duration_opening=0.1,
+        self.ids.bottom_sheet.open(
+            main_screen=self,
+            con=self.con,
+            cursor=self.cursor,
+            cipher=self.cipher,
+            _id=_id,
+            site=site,
+            email=email,
+            username=username,
+            encrypted=encrypted,
+            auto_backup=self.auto_backup,
+            auto_backup_location=self.auto_backup_location,
+            remote_database=self.remote_database,
         )
-        self.bottom_sheet.open()
