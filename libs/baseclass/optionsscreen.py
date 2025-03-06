@@ -10,6 +10,7 @@ from kivy.utils import platform
 from kivy.uix.screenmanager import Screen
 from kivy.properties import StringProperty
 from kivy.core.clipboard import Clipboard
+from kivy.clock import Clock
 
 from kivymd.uix.list import (
     OneLineIconListItem,
@@ -577,7 +578,7 @@ class DatabaseOptionsScreen(Screen):
         elif local_data:
 
             def insert_data_to_remote_database():
-                toast("Please wait until Sync is Complete")
+                Clock.schedule_once(lambda _: toast("Please wait until Sync is Complete"))
 
                 pg_cursor.execute("INSERT INTO options VALUES(%s, %s)", local_options)
                 for account in local_data:
@@ -586,7 +587,7 @@ class DatabaseOptionsScreen(Screen):
                     )
                 pg_con.commit()
 
-                toast("Sync Completed")
+                Clock.schedule_once(lambda _: toast("Sync Completed"))
 
             Thread(target=insert_data_to_remote_database).start()
 
